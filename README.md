@@ -1,6 +1,6 @@
 # PureZ Wiki
 
-Source for [wiki.purez.gg](https://wiki.purez.gg). Every push to `main` rebuilds and deploys the site.
+Source for [wiki.purez.gg](https://wiki.purez.gg). Every push to `main` rebuilds the site and deploys it through GitHub Actions; the built site is also kept on the `gh-pages` branch. In the repository's Pages settings, set Source to **GitHub Actions** (or to the `gh-pages` branch). The `main` branch holds the generator, not the site.
 
 ## Editing
 

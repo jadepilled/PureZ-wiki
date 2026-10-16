@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -29,6 +29,16 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+      # also kept on the gh-pages branch, for Pages set to "Deploy from a branch"
+      - run: |
+          touch _site/.nojekyll
+          cd _site
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Build ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
 
   deploy:
     needs: build
