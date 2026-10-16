@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crafting · PureZ Wiki</title>
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,500;0,600;1,300&family=Inter+Tight:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/wiki.css">
+  <script src="/static/wiki.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <a class="logo" href="/" aria-label="PureZ Wiki home">Pure<span>Z</span><em>Wiki</em></a>
+    <div class="search" role="search">
+      <input id="q" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-label="Search the wiki" aria-controls="results">
+      <kbd class="hint">/</kbd>
+      <ul id="results" role="listbox" hidden></ul>
+    </div>
+    <nav class="out-links"><a class="out" href="https://map.purez.gg">Map</a><a class="out" href="https://purez.gg">purez.gg</a></nav>
+  </header>
+  <div class="layout">
+    <nav class="side" aria-label="Categories">
+      <a href="/weapons/">Weapons</a>
+      <a href="/ammunition/">Ammunition</a>
+      <a href="/attachments/">Attachments</a>
+      <a href="/clothing/">Clothing</a>
+      <a href="/gear/">Gear &amp; tools</a>
+      <a href="/medical/">Medical</a>
+      <a href="/food/">Food &amp; drink</a>
+      <a href="/vehicles/">Vehicles</a>
+      <a href="/health/">Health</a>
+      <a href="/crafting/" aria-current="true">Crafting</a>
+      <a href="/server/">Server</a>
+    </nav>
+    <main class="main">
+<header class="page-head">
+  <h1>Crafting</h1>
+  <p class="lead">221 recipes. Combine the two ingredients in your hands or inventory.</p>
+</header>
+<input class="filter" type="search" placeholder="Filter recipes" aria-label="Filter recipes" data-filter="#recipes li">
+<ul class="recipes" id="recipes">
+  <li data-text="animal sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet sks_bayonet boneknife screwdriver iceaxe ">
+    <span class="rname">Animal</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / SKS Bayonet / Bone Knife / Screwdriver / Iceaxe</span>
+  </li>
+  <li data-text="armband flag sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife armband_ armband_ armband_">
+    <span class="rname">Armband flag</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Armband , Armband , Armband </span>  </li>
+  <li data-text="armband rag sewingkit armband_white">
+    <span class="rname">Armband rag</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Sewing Kit</span>
+<span class="arrow">→</span><span class="res">Armband White</span>  </li>
+  <li data-text="armband raincoat sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife armband_ armband_ armband_ armband_ armband_">
+    <span class="rname">Armband raincoat</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Armband , Armband , Armband , Armband , Armband </span>  </li>
+  <li data-text="arrow chickenfeather ammo_sharpstick ammo_arrowprimitive">
+    <span class="rname">Arrow</span>
+    <span class="ing">Chicken Feather</span><span class="plus">+</span><span class="ing">Ammo Sharp Stick</span>
+<span class="arrow">→</span><span class="res">Ammo Arrow Primitive</span>  </li>
+  <li data-text="arrow bone ammo_arrowprimitive bone ammo_arrowboned">
+    <span class="rname">Arrow bone</span>
+    <span class="ing">Ammo Arrow Primitive</span><span class="plus">+</span><span class="ing">Bone</span>
+<span class="arrow">→</span><span class="res">Ammo Arrow Boned</span>  </li>
+  <li data-text="attach holster platecarrierblank carrierholstersolo platecarrierholster">
+    <span class="rname">Attach holster</span>
+    <span class="ing">Plate Carrier Blank</span><span class="plus">+</span><span class="ing">Carrier Holster Solo</span>
+<span class="arrow">→</span><span class="res">Plate Carrier Holster</span>  </li>
+  <li data-text="attach holster pouch platecarrierpouches carrierholstersolo platecarriercomplete">
+    <span class="rname">Attach holster pouch</span>
+    <span class="ing">Plate Carrier Pouches</span><span class="plus">+</span><span class="ing">Carrier Holster Solo</span>
+<span class="arrow">→</span><span class="res">Plate Carrier Complete</span>  </li>
+  <li data-text="attach pouch platecarrierblank carrierpouches platecarrierpouches">
+    <span class="rname">Attach pouch</span>
+    <span class="ing">Plate Carrier Blank</span><span class="plus">+</span><span class="ing">Carrier Pouches</span>
+<span class="arrow">→</span><span class="res">Plate Carrier Pouches</span>  </li>
+  <li data-text="attach pouches holster platecarrierholster carrierpouches platecarriercomplete">
+    <span class="rname">Attach pouches holster</span>
+    <span class="ing">Plate Carrier Holster</span><span class="plus">+</span><span class="ing">Carrier Pouches</span>
+<span class="arrow">→</span><span class="res">Plate Carrier Complete</span>  </li>
+  <li data-text="bait worm hook bait">
+    <span class="rname">Bait</span>
+    <span class="ing">Worm</span><span class="plus">+</span><span class="ing">Hook</span>
+<span class="arrow">→</span><span class="res">Bait</span>  </li>
+  <li data-text="base ball bat barbed barbedwire baseballbat barbedbaseballbat">
+    <span class="rname">Base ball bat barbed</span>
+    <span class="ing">Barbed Wire</span><span class="plus">+</span><span class="ing">Baseball Bat</span>
+<span class="arrow">→</span><span class="res">Barbed Baseball Bat</span>  </li>
+  <li data-text="base ball bat nailed nail baseballbat nailedbaseballbat">
+    <span class="rname">Base ball bat nailed</span>
+    <span class="ing">Nail</span><span class="plus">+</span><span class="ing">Baseball Bat</span>
+<span class="arrow">→</span><span class="res">Nailed Baseball Bat</span>  </li>
+  <li data-text="blood bag iv startkitiv bloodbagfull bloodbagiv">
+    <span class="rname">Blood bag iv</span>
+    <span class="ing">Start Kit IV</span><span class="plus">+</span><span class="ing">Blood Bag Full</span>
+<span class="arrow">→</span><span class="res">Blood Bag IV</span>  </li>
+  <li data-text="blood test bloodtestkit bloodsyringe bloodbagfull bloodbagiv ">
+    <span class="rname">Blood test</span>
+    <span class="ing">Blood Test Kit</span><span class="plus">+</span><span class="ing">Blood Syringe / Blood Bag Full / Blood Bag IV</span>
+  </li>
+  <li data-text="bolt woodenstick sickle kukriknife fangeknife kitchenknife steakknife stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete woodaxe hatchet firefighteraxe ak_bayonet m9a1_bayonet sks_bayonet boneknife ammo_improvisedbolt_1">
+    <span class="rname">Bolt</span>
+    <span class="ing">Wooden Stick</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Kitchen Knife / Steak Knife / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Wood Axe / Hatchet / Firefighter Axe / AK Bayonet / M9A1 Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Ammo Improvised Bolt 1</span>  </li>
+  <li data-text="bolt feather ammo_improvisedbolt_1 chickenfeather ammo_improvisedbolt_2">
+    <span class="rname">Bolt feather</span>
+    <span class="ing">Ammo Improvised Bolt 1</span><span class="plus">+</span><span class="ing">Chicken Feather</span>
+<span class="arrow">→</span><span class="res">Ammo Improvised Bolt 2</span>  </li>
+  <li data-text="bone bait worm bonehook bonebait">
+    <span class="rname">Bone bait</span>
+    <span class="ing">Worm</span><span class="plus">+</span><span class="ing">Bone Hook</span>
+<span class="arrow">→</span><span class="res">Bone Bait</span>  </li>
+  <li data-text="bone hook bone sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife iceaxe bonehook">
+    <span class="rname">Bone hook</span>
+    <span class="ing">Bone</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife / Iceaxe</span>
+<span class="arrow">→</span><span class="res">Bone Hook</span>  </li>
+  <li data-text="bone knife stone smallstone boneknife">
+    <span class="rname">Bone knife</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Stone / Small Stone</span>
+<span class="arrow">→</span><span class="res">Bone Knife</span>  </li>
+  <li data-text="bow rope longwoodenstick quickiebow">
+    <span class="rname">Bow</span>
+    <span class="ing">Rope</span><span class="plus">+</span><span class="ing">Long Wooden Stick</span>
+<span class="arrow">→</span><span class="res">Quickie Bow</span>  </li>
+  <li data-text="burlap strips burlapsack sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife iceaxe burlapstrip">
+    <span class="rname">Burlap strips</span>
+    <span class="ing">Burlap Sack</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife / Iceaxe</span>
+<span class="arrow">→</span><span class="res">Burlap Strip</span>  </li>
+  <li data-text="camo net shelter camonet longwoodenstick camonetshelter">
+    <span class="rname">Camo net shelter</span>
+    <span class="ing">Camo Net</span><span class="plus">+</span><span class="ing">Long Wooden Stick</span>
+<span class="arrow">→</span><span class="res">Camo Net Shelter</span>  </li>
+  <li data-text="carp carp carpfilletmeat carpfilletmeat">
+    <span class="rname">Carp</span>
+    <span class="ing">Carp</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Carp Fillet Meat, Carp Fillet Meat</span>  </li>
+  <li data-text="chelate water chelatingtablets pot canistergasoline disinfectantalcohol canteen waterbottle filteringbottle glassbottle waterpouch_colorbase barrel_colorbase cauldron ">
+    <span class="rname">Chelate water</span>
+    <span class="ing">Chelating Tablets</span><span class="plus">+</span><span class="ing">Pot / Canister Gasoline / Disinfectant Alcohol / Canteen / Water Bottle / Filtering Bottle / Glass Bottle / Water Pouch Color Base / Barrel Color Base / Cauldron</span>
+  </li>
+  <li data-text="chicken deadchicken_colorbase bone">
+    <span class="rname">Chicken</span>
+    <span class="ing">Dead Chicken Color Base</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Bone</span>  </li>
+  <li data-text="christmas lights headband christmasheadband_trees christmasheadband_antlers christmasheadband_gingerbread xmaslights christmasheadband">
+    <span class="rname">Christmas lights headband</span>
+    <span class="ing">Christmas Headband Trees / Christmas Headband Antlers / Christmas Headband Gingerbread</span><span class="plus">+</span><span class="ing">Xmas Lights</span>
+<span class="arrow">→</span><span class="res">Christmas Headband</span>  </li>
+  <li data-text="clean rags rag pot canistergasoline canteen waterbottle filteringbottle glassbottle waterpouch_colorbase barrel_colorbase ">
+    <span class="rname">Clean rags</span>
+    <span class="ing">Rag</span><span class="plus">+</span><span class="ing">Pot / Canister Gasoline / Canteen / Water Bottle / Filtering Bottle / Glass Bottle / Water Pouch Color Base / Barrel Color Base</span>
+  </li>
+  <li data-text="clean weapon weaponcleaningkit defaultweapon defaultmagazine itemsuppressor ">
+    <span class="rname">Clean weapon</span>
+    <span class="ing">Weapon Cleaning Kit</span><span class="plus">+</span><span class="ing">Default Weapon / Default Magazine / Item Suppressor</span>
+  </li>
+  <li data-text="close scientific briefcase scientificbriefcase scientificbriefcasekeys ">
+    <span class="rname">Close scientific briefcase</span>
+    <span class="ing">Scientific Briefcase</span><span class="plus">+</span><span class="ing">Scientific Briefcase Keys</span>
+  </li>
+  <li data-text="cooking stand woodenstick longwoodenstick sharpwoodenstick cookingstand">
+    <span class="rname">Cooking stand</span>
+    <span class="ing">Wooden Stick</span><span class="plus">+</span><span class="ing">Long Wooden Stick / Sharp Wooden Stick</span>
+<span class="arrow">→</span><span class="res">Cooking Stand</span>  </li>
+  <li data-text="courier bag burlapsack rope courierbag">
+    <span class="rname">Courier bag</span>
+    <span class="ing">Burlap Sack</span><span class="plus">+</span><span class="ing">Rope</span>
+<span class="arrow">→</span><span class="res">Courier Bag</span>  </li>
+  <li data-text="cut out pepper seeds greenbellpepper sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife pepperseeds">
+    <span class="rname">Cut out pepper seeds</span>
+    <span class="ing">Green Bell Pepper</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Pepper Seeds</span>  </li>
+  <li data-text="cut out pumpkin seeds pumpkin sickle kukriknife fangeknife hacksaw kitchenknife steakknife stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet farminghoe shovel crowbar hammer mace wrench lugwrench screwdriver sledgehammer baseballbat pickaxe sword woodaxe firefighteraxe hatchet handsaw boneknife pumpkinseeds slicedpumpkin slicedpumpkin">
+    <span class="rname">Cut out pumpkin seeds</span>
+    <span class="ing">Pumpkin</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Farming Hoe / Shovel / Crowbar / Hammer / Mace / Wrench / Lug Wrench / Screwdriver / Sledge Hammer / Baseball Bat / Pickaxe / Sword / Wood Axe / Firefighter Axe / Hatchet / Hand Saw / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Pumpkin Seeds, Sliced Pumpkin, Sliced Pumpkin</span>  </li>
+  <li data-text="cut out tomato seeds tomato sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife tomatoseeds">
+    <span class="rname">Cut out tomato seeds</span>
+    <span class="ing">Tomato</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Tomato Seeds</span>  </li>
+  <li data-text="cut out zucchini seeds zucchini sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife zucchiniseeds">
+    <span class="rname">Cut out zucchini seeds</span>
+    <span class="ing">Zucchini</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Zucchini Seeds</span>  </li>
+  <li data-text="de craft armband armband_colorbase sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife rag">
+    <span class="rname">De craft armband</span>
+    <span class="ing">Armband Color Base</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Rag</span>  </li>
+  <li data-text="de craft bow quickiebow sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife longwoodenstick">
+    <span class="rname">De craft bow</span>
+    <span class="ing">Quickie Bow</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Long Wooden Stick</span>  </li>
+  <li data-text="de craft camo net shelter camonetshelter sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet mosin_bayonet sks_bayonet boneknife longwoodenstick camonet">
+    <span class="rname">De craft camo net shelter</span>
+    <span class="ing">Camo Net Shelter</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Long Wooden Stick, Camo Net</span>  </li>
+  <li data-text="de craft carrier complete platecarriercomplete sickle kukriknife fangeknife hacksaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife platecarrierblank carrierholstersolo carrierpouches">
+    <span class="rname">De craft carrier complete</span>
+    <span class="ing">Plate Carrier Complete</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Plate Carrier Blank, Carrier Holster Solo, Carrier Pouches</span>  </li>
+  <li data-text="de craft carrier holster platecarrierholster sickle kukriknife fangeknife hacksaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife platecarrierblank carrierholstersolo">
+    <span class="rname">De craft carrier holster</span>
+    <span class="ing">Plate Carrier Holster</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Plate Carrier Blank, Carrier Holster Solo</span>  </li>
+  <li data-text="de craft carrier pouches platecarrierpouches sickle kukriknife fangeknife hacksaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife platecarrierblank carrierpouches">
+    <span class="rname">De craft carrier pouches</span>
+    <span class="ing">Plate Carrier Pouches</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Plate Carrier Blank, Carrier Pouches</span>  </li>
+  <li data-text="de craft cooking stand cookingstand sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife woodenstick">
+    <span class="rname">De craft cooking stand</span>
+    <span class="ing">Cooking Stand</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Wooden Stick</span>  </li>
+  <li data-text="de craft courier bag courierbag sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife burlapsack rope">
+    <span class="rname">De craft courier bag</span>
+    <span class="ing">Courier Bag</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Burlap Sack, Rope</span>  </li>
+  <li data-text="de craft detonator remotedetonator screwdriver battery9v">
+    <span class="rname">De craft detonator</span>
+    <span class="ing">Remote Detonator</span><span class="plus">+</span><span class="ing">Screwdriver</span>
+<span class="arrow">→</span><span class="res">Battery 9V</span>  </li>
+  <li data-text="de craft fish net trap fishnettrap sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife metalwire netting">
+    <span class="rname">De craft fish net trap</span>
+    <span class="ing">Fish Net Trap</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Metal Wire, Netting</span>  </li>
+  <li data-text="de craft fishing rod improvisedfishingrod sickle kukriknife fangeknife hacksaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife longwoodenstick rope">
+    <span class="rname">De craft fishing rod</span>
+    <span class="ing">Improvised Fishing Rod</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Long Wooden Stick, Rope</span>  </li>
+  <li data-text="de craft ghillie attachment ghillieatt_colorbase sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife netting burlapstrip">
+    <span class="rname">De craft ghillie attachment</span>
+    <span class="ing">Ghillie Att Color Base</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Netting, Burlap Strip</span>  </li>
+  <li data-text="de craft ghillie bushrag ghilliebushrag_colorbase sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife netting burlapstrip">
+    <span class="rname">De craft ghillie bushrag</span>
+    <span class="ing">Ghillie Bushrag Color Base</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Netting, Burlap Strip</span>  </li>
+  <li data-text="de craft ghillie hood ghilliehood_colorbase sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife netting burlapstrip">
+    <span class="rname">De craft ghillie hood</span>
+    <span class="ing">Ghillie Hood Color Base</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Netting, Burlap Strip</span>  </li>
+  <li data-text="de craft ghillie suit ghilliesuit_colorbase sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet netting burlapstrip">
+    <span class="rname">De craft ghillie suit</span>
+    <span class="ing">Ghillie Suit Color Base</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet</span>
+<span class="arrow">→</span><span class="res">Netting, Burlap Strip</span>  </li>
+  <li data-text="de craft ghillie top ghillietop_colorbase sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife netting burlapstrip">
+    <span class="rname">De craft ghillie top</span>
+    <span class="ing">Ghillie Top Color Base</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Netting, Burlap Strip</span>  </li>
+  <li data-text="de craft hand drill kit handdrillkit sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife woodenstick">
+    <span class="rname">De craft hand drill kit</span>
+    <span class="ing">Hand Drill Kit</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Wooden Stick</span>  </li>
+  <li data-text="de craft improvised bag improvisedbag sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife woodenstick burlapsack">
+    <span class="rname">De craft improvised bag</span>
+    <span class="ing">Improvised Bag</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Wooden Stick, Burlap Sack</span>  </li>
+  <li data-text="de craft improvised leather bag furimprovisedbag sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife woodenstick wildboarpelt">
+    <span class="rname">De craft improvised leather bag</span>
+    <span class="ing">Fur Improvised Bag</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Wooden Stick, Wildboar Pelt</span>  </li>
+  <li data-text="de craft leather courier bag furcourierbag sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife boneknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet wildboarpelt rope">
+    <span class="rname">De craft leather courier bag</span>
+    <span class="ing">Fur Courier Bag</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Bone Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet</span>
+<span class="arrow">→</span><span class="res">Wildboar Pelt, Rope</span>  </li>
+  <li data-text="de craft leather sack leathersack_colorbase sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife tannedleather">
+    <span class="rname">De craft leather sack</span>
+    <span class="ing">Leather Sack Color Base</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Tanned Leather</span>  </li>
+  <li data-text="de craft snare trap rabbitsnaretrap sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife metalwire">
+    <span class="rname">De craft snare trap</span>
+    <span class="ing">Rabbit Snare Trap</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Metal Wire</span>  </li>
+  <li data-text="de craft spear spear sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife longwoodenstick">
+    <span class="rname">De craft spear</span>
+    <span class="ing">Spear</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Long Wooden Stick</span>  </li>
+  <li data-text="de craft splint splint sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife woodenstick">
+    <span class="rname">De craft splint</span>
+    <span class="ing">Splint</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Wooden Stick</span>  </li>
+  <li data-text="de craft trip wire tripwiretrap sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife metalwire">
+    <span class="rname">De craft trip wire</span>
+    <span class="ing">Tripwire Trap</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Metal Wire</span>  </li>
+  <li data-text="de craft truck 01double wheel truck_01_wheeldouble crowbar lugwrench truck_01_wheel truck_01_wheel">
+    <span class="rname">De craft truck 01double wheel</span>
+    <span class="ing">Truck 01 Wheel Double</span><span class="plus">+</span><span class="ing">Crowbar / Lug Wrench</span>
+<span class="arrow">→</span><span class="res">Truck 01 Wheel, Truck 01 Wheel</span>  </li>
+  <li data-text="de craft wooden crate woodencrate crowbar woodaxe hatchet firefighteraxe woodenplank nail">
+    <span class="rname">De craft wooden crate</span>
+    <span class="ing">Wooden Crate</span><span class="plus">+</span><span class="ing">Crowbar / Wood Axe / Hatchet / Firefighter Axe</span>
+<span class="arrow">→</span><span class="res">Wooden Plank, Nail</span>  </li>
+  <li data-text="disinfect item disinfectantspray disinfectantalcohol iodinetincture inventory_base ">
+    <span class="rname">Disinfect item</span>
+    <span class="ing">Disinfectant Spray / Disinfectant Alcohol / Iodine Tincture</span><span class="plus">+</span><span class="ing">Inventory Base</span>
+  </li>
+  <li data-text="drain liquid pot canistergasoline canteen waterbottle filteringbottle glassbottle waterpouch_colorbase barrel_colorbase pot canistergasoline canteen waterbottle filteringbottle glassbottle waterpouch_colorbase barrel_colorbase ">
+    <span class="rname">Drain liquid</span>
+    <span class="ing">Pot / Canister Gasoline / Canteen / Water Bottle / Filtering Bottle / Glass Bottle / Water Pouch Color Base / Barrel Color Base</span><span class="plus">+</span><span class="ing">Pot / Canister Gasoline / Canteen / Water Bottle / Filtering Bottle / Glass Bottle / Water Pouch Color Base / Barrel Color Base</span>
+  </li>
+  <li data-text="drysack bag waterproofbag_colorbase rope drysackbag_">
+    <span class="rname">Drysack bag</span>
+    <span class="ing">Waterproof Bag Color Base</span><span class="plus">+</span><span class="ing">Rope</span>
+<span class="arrow">→</span><span class="res">Drysack Bag </span>  </li>
+  <li data-text="extinguish torch torch broom pot canistergasoline disinfectantalcohol canteen waterbottle filteringbottle glassbottle waterpouch_colorbase barrel_colorbase ">
+    <span class="rname">Extinguish torch</span>
+    <span class="ing">Torch / Broom</span><span class="plus">+</span><span class="ing">Pot / Canister Gasoline / Disinfectant Alcohol / Canteen / Water Bottle / Filtering Bottle / Glass Bottle / Water Pouch Color Base / Barrel Color Base</span>
+  </li>
+  <li data-text="feathers sickle hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife kukriknife fangeknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet farminghoe shovel fieldshovel boneknife iceaxe chickenfeather">
+    <span class="rname">Feathers</span>
+    <span class="ing">Sickle / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Kukri Knife / Fange Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Farming Hoe / Shovel / Field Shovel / Bone Knife / Iceaxe</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Chicken Feather</span>  </li>
+  <li data-text="fence kit woodenstick ammo_sharpstick fencekit">
+    <span class="rname">Fence kit</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Wooden Stick / Ammo Sharp Stick</span>
+<span class="arrow">→</span><span class="res">Fence Kit</span>  </li>
+  <li data-text="fill gas mask filter charcoaltablets gasmask_filter gasmask_filter_improvised ">
+    <span class="rname">Fill gas mask filter</span>
+    <span class="ing">Charcoal Tablets</span><span class="plus">+</span><span class="ing">Gas Mask Filter / Gas Mask Filter Improvised</span>
+  </li>
+  <li data-text="fill syringe injectionvial syringe clearsyringe">
+    <span class="rname">Fill syringe</span>
+    <span class="ing">Injection Vial</span><span class="plus">+</span><span class="ing">Syringe</span>
+<span class="arrow">→</span><span class="res">Clear Syringe</span>  </li>
+  <li data-text="fireplace woodenstick rag bandagedressing paper itembook bark_birch bark_oak morsecodeleaflet_blood morsecodeleaflet_fire morsecodeleaflet_coffee fireplace">
+    <span class="rname">Fireplace</span>
+    <span class="ing">Wooden Stick / Rag / Bandage Dressing / Paper / Item Book / Bark Birch / Bark Oak / Morsecode Leaflet blood / Morsecode Leaflet fire / Morsecode Leaflet coffee</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Fireplace</span>  </li>
+  <li data-text="fish net trap netting metalwire fishnettrap">
+    <span class="rname">Fish net trap</span>
+    <span class="ing">Netting</span><span class="plus">+</span><span class="ing">Metal Wire</span>
+<span class="arrow">→</span><span class="res">Fish Net Trap</span>  </li>
+  <li data-text="fishing rod rope longwoodenstick sharpwoodenstick improvisedfishingrod">
+    <span class="rname">Fishing rod</span>
+    <span class="ing">Rope</span><span class="plus">+</span><span class="ing">Long Wooden Stick / Sharp Wooden Stick</span>
+<span class="arrow">→</span><span class="res">Improvised Fishing Rod</span>  </li>
+  <li data-text="fox deadfox bone foxpelt">
+    <span class="rname">Fox</span>
+    <span class="ing">Dead Fox</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Bone, Fox Pelt</span>  </li>
+  <li data-text="fox headdress foxpelt leathersewingkit headdress_fox">
+    <span class="rname">Fox headdress</span>
+    <span class="ing">Fox Pelt</span><span class="plus">+</span><span class="ing">Leather Sewing Kit</span>
+<span class="arrow">→</span><span class="res">Headdress Fox</span>  </li>
+  <li data-text="fuel chainsaw chainsaw pot canistergasoline disinfectantalcohol canteen waterbottle filteringbottle glassbottle waterpouch_colorbase barrel_colorbase ">
+    <span class="rname">Fuel chainsaw</span>
+    <span class="ing">Chainsaw</span><span class="plus">+</span><span class="ing">Pot / Canister Gasoline / Disinfectant Alcohol / Canteen / Water Bottle / Filtering Bottle / Glass Bottle / Water Pouch Color Base / Barrel Color Base</span>
+  </li>
+  <li data-text="gas mask filter improvised waterbottle nioshfacemask gasmask_filter_improvised">
+    <span class="rname">Gas mask filter improvised</span>
+    <span class="ing">Water Bottle</span><span class="plus">+</span><span class="ing">Niosh Face Mask</span>
+<span class="arrow">→</span><span class="res">Gas Mask Filter Improvised</span>  </li>
+  <li data-text="ghillie attachment netting burlapstrip ghillieatt_tan">
+    <span class="rname">Ghillie attachment</span>
+    <span class="ing">Netting</span><span class="plus">+</span><span class="ing">Burlap Strip</span>
+<span class="arrow">→</span><span class="res">Ghillie Att Tan</span>  </li>
+  <li data-text="ghillie bushrag netting burlapstrip ghilliebushrag_tan">
+    <span class="rname">Ghillie bushrag</span>
+    <span class="ing">Netting</span><span class="plus">+</span><span class="ing">Burlap Strip</span>
+<span class="arrow">→</span><span class="res">Ghillie Bushrag Tan</span>  </li>
+  <li data-text="ghillie hood netting burlapstrip ghilliehood_tan">
+    <span class="rname">Ghillie hood</span>
+    <span class="ing">Netting</span><span class="plus">+</span><span class="ing">Burlap Strip</span>
+<span class="arrow">→</span><span class="res">Ghillie Hood Tan</span>  </li>
+  <li data-text="ghillie suit netting burlapstrip ghilliesuit_tan">
+    <span class="rname">Ghillie suit</span>
+    <span class="ing">Netting</span><span class="plus">+</span><span class="ing">Burlap Strip</span>
+<span class="arrow">→</span><span class="res">Ghillie Suit Tan</span>  </li>
+  <li data-text="ghillie top netting burlapstrip ghillietop_tan">
+    <span class="rname">Ghillie top</span>
+    <span class="ing">Netting</span><span class="plus">+</span><span class="ing">Burlap Strip</span>
+<span class="arrow">→</span><span class="res">Ghillie Top Tan</span>  </li>
+  <li data-text="gorka helmet complete gorkahelmet gorkahelmetvisor gorkahelmetcomplete_">
+    <span class="rname">Gorka helmet complete</span>
+    <span class="ing">Gorka Helmet</span><span class="plus">+</span><span class="ing">Gorka Helmet Visor</span>
+<span class="arrow">→</span><span class="res">Gorka Helmet Complete </span>  </li>
+  <li data-text="guts rope guts sickle kukriknife fangeknife kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife rope">
+    <span class="rname">Guts rope</span>
+    <span class="ing">Guts</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Rope</span>  </li>
+  <li data-text="hand drill kit woodenstick ammo_sharpstick handdrillkit">
+    <span class="rname">Hand drill kit</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Wooden Stick / Ammo Sharp Stick</span>
+<span class="arrow">→</span><span class="res">Hand Drill Kit</span>  </li>
+  <li data-text="improvised bag woodenstick courierbag improvisedbag">
+    <span class="rname">Improvised bag</span>
+    <span class="ing">Wooden Stick</span><span class="plus">+</span><span class="ing">Courier Bag</span>
+<span class="arrow">→</span><span class="res">Improvised Bag</span>  </li>
+  <li data-text="improvised explosive electronicrepairkit improvisedexplosive">
+    <span class="rname">Improvised explosive</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Electronic Repair Kit</span>
+<span class="arrow">→</span><span class="res">Improvised Explosive</span>  </li>
+  <li data-text="improvised leather bag woodenstick furcourierbag furimprovisedbag">
+    <span class="rname">Improvised leather bag</span>
+    <span class="ing">Wooden Stick</span><span class="plus">+</span><span class="ing">Fur Courier Bag</span>
+<span class="arrow">→</span><span class="res">Fur Improvised Bag</span>  </li>
+  <li data-text="leather courier bag wildboarpelt rope furcourierbag">
+    <span class="rname">Leather courier bag</span>
+    <span class="ing">Wildboar Pelt</span><span class="plus">+</span><span class="ing">Rope</span>
+<span class="arrow">→</span><span class="res">Fur Courier Bag</span>  </li>
+  <li data-text="leather sack tannedleather leathersewingkit leathersack_brown">
+    <span class="rname">Leather sack</span>
+    <span class="ing">Tanned Leather</span><span class="plus">+</span><span class="ing">Leather Sewing Kit</span>
+<span class="arrow">→</span><span class="res">Leather Sack Brown</span>  </li>
+  <li data-text="load magazine ammunition_base magazine_base ">
+    <span class="rname">Load magazine</span>
+    <span class="ing">Ammunition Base</span><span class="plus">+</span><span class="ing">Magazine Base</span>
+  </li>
+  <li data-text="long torch rag longwoodenstick sharpwoodenstick longtorch">
+    <span class="rname">Long torch</span>
+    <span class="ing">Rag</span><span class="plus">+</span><span class="ing">Long Wooden Stick / Sharp Wooden Stick</span>
+<span class="arrow">→</span><span class="res">Long Torch</span>  </li>
+  <li data-text="mackerel mackerel mackerelfilletmeat mackerelfilletmeat">
+    <span class="rname">Mackerel</span>
+    <span class="ing">Mackerel</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Mackerel Fillet Meat, Mackerel Fillet Meat</span>  </li>
+  <li data-text="metal wire barbedwire pliers metalwire">
+    <span class="rname">Metal wire</span>
+    <span class="ing">Barbed Wire</span><span class="plus">+</span><span class="ing">Pliers</span>
+<span class="arrow">→</span><span class="res">Metal Wire</span>  </li>
+  <li data-text="open can sickle kukriknife fangeknife hacksaw kitchenknife steakknife stoneknife combatknife huntingknife machete crudemachete orientalmachete ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet canopener farminghoe shovel fieldshovel crowbar hammer mace wrench lugwrench screwdriver sledgehammer baseballbat nailedbaseballbat barbedbaseballbat xmasbaseballbat pipewrench pickaxe woodaxe firefighteraxe hatchet handsaw pliers spear pitchfork boneknife meattenderizer cleaver sword iceaxe ">
+    <span class="rname">Open can</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Stone Knife / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Can Opener / Farming Hoe / Shovel / Field Shovel / Crowbar / Hammer / Mace / Wrench / Lug Wrench / Screwdriver / Sledge Hammer / Baseball Bat / Nailed Baseball Bat / Barbed Baseball Bat / Xmas Baseball Bat / Pipe Wrench / Pickaxe / Wood Axe / Firefighter Axe / Hatchet / Hand Saw / Pliers / Spear / Pitchfork / Bone Knife / Meat Tenderizer / Cleaver / Sword / Iceaxe</span>
+  </li>
+  <li data-text="open scientific briefcase scientificbriefcase scientificbriefcasekeys ">
+    <span class="rname">Open scientific briefcase</span>
+    <span class="ing">Scientific Briefcase</span><span class="plus">+</span><span class="ing">Scientific Briefcase Keys</span>
+  </li>
+  <li data-text="paint ak folding bttstck spraycan_colorbase ak_foldingbttstck ">
+    <span class="rname">Paint ak folding bttstck</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">AK Folding Bttstck</span>
+  </li>
+  <li data-text="paint ak plastic bttstck spraycan_colorbase ak_plasticbttstck ">
+    <span class="rname">Paint ak plastic bttstck</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">AK Plastic Bttstck</span>
+  </li>
+  <li data-text="paint ak rail hndgrd spraycan_colorbase ak_railhndgrd ">
+    <span class="rname">Paint ak rail hndgrd</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">AK Rail Hndgrd</span>
+  </li>
+  <li data-text="paint ak wood bttstck black spraycan_black ak_woodbttstck ">
+    <span class="rname">Paint ak wood bttstck black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">AK Wood Bttstck</span>
+  </li>
+  <li data-text="paint ak wood bttstck camo spraycan_green ak_woodbttstck ">
+    <span class="rname">Paint ak wood bttstck camo</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">AK Wood Bttstck</span>
+  </li>
+  <li data-text="paint ak101 spraycan_colorbase ak101 ">
+    <span class="rname">Paint ak101</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">AK101</span>
+  </li>
+  <li data-text="paint ak10130mag spraycan_colorbase mag_ak101_30rnd ">
+    <span class="rname">Paint ak10130mag</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Mag AK101 30Rnd</span>
+  </li>
+  <li data-text="paint ak74 spraycan_colorbase ak74 ak74_">
+    <span class="rname">Paint ak74</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">AK74</span>
+<span class="arrow">→</span><span class="res">AK74 </span>  </li>
+  <li data-text="paint ak7430mag spraycan_colorbase mag_ak74_30rnd ">
+    <span class="rname">Paint ak7430mag</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Mag AK74 30Rnd</span>
+  </li>
+  <li data-text="paint ak74hndgrd black spraycan_black ak74_hndgrd ">
+    <span class="rname">Paint ak74hndgrd black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">AK74 Hndgrd</span>
+  </li>
+  <li data-text="paint ak74hndgrd camo spraycan_green ak74_hndgrd ">
+    <span class="rname">Paint ak74hndgrd camo</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">AK74 Hndgrd</span>
+  </li>
+  <li data-text="paint ak74wood bttstck black spraycan_black ak74_woodbttstck ">
+    <span class="rname">Paint ak74wood bttstck black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">AK74 Wood Bttstck</span>
+  </li>
+  <li data-text="paint ak74wood bttstck camo spraycan_green ak74_woodbttstck ">
+    <span class="rname">Paint ak74wood bttstck camo</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">AK74 Wood Bttstck</span>
+  </li>
+  <li data-text="paint akm drum mag spraycan_colorbase mag_akm_drum75rnd ">
+    <span class="rname">Paint akm drum mag</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Mag AKM Drum 75Rnd</span>
+  </li>
+  <li data-text="paint akm palm 30mag spraycan_colorbase mag_akm_palm30rnd ">
+    <span class="rname">Paint akm palm 30mag</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Mag AKM Palm 30Rnd</span>
+  </li>
+  <li data-text="paint aks74u spraycan_colorbase aks74u ">
+    <span class="rname">Paint aks74u</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">AKS74U</span>
+  </li>
+  <li data-text="paint aks74u bttstck spraycan_colorbase aks74u_bttstck ">
+    <span class="rname">Paint aks74u bttstck</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">AKS74U Bttstck</span>
+  </li>
+  <li data-text="paint b95 spraycan_colorbase b95 ">
+    <span class="rname">Paint b95</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">B95</span>
+  </li>
+  <li data-text="paint ballistic helmet spraycan_colorbase ballistichelmet_colorbase ">
+    <span class="rname">Paint ballistic helmet</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Ballistic Helmet Color Base</span>
+  </li>
+  <li data-text="paint cmag10 spraycan_colorbase mag_cmag_10rnd ">
+    <span class="rname">Paint cmag10</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Mag CMAG 10Rnd</span>
+  </li>
+  <li data-text="paint cmag20 spraycan_colorbase mag_cmag_20rnd ">
+    <span class="rname">Paint cmag20</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Mag CMAG 20Rnd</span>
+  </li>
+  <li data-text="paint cmag30 spraycan_colorbase mag_cmag_30rnd ">
+    <span class="rname">Paint cmag30</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Mag CMAG 30Rnd</span>
+  </li>
+  <li data-text="paint cmag40 spraycan_colorbase mag_cmag_40rnd ">
+    <span class="rname">Paint cmag40</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Mag CMAG 40Rnd</span>
+  </li>
+  <li data-text="paint cz527 spraycan_colorbase cz527 ">
+    <span class="rname">Paint cz527</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">CZ527</span>
+  </li>
+  <li data-text="paint cz527camo black spraycan_black cz527_green ">
+    <span class="rname">Paint cz527camo black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">CZ527 Green</span>
+  </li>
+  <li data-text="paint cz527camo green spraycan_green cz527_black ">
+    <span class="rname">Paint cz527camo green</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">CZ527 Black</span>
+  </li>
+  <li data-text="paint dark motohelmet spraycan_colorbase darkmotohelmet_colorbase ">
+    <span class="rname">Paint dark motohelmet</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Dark Moto Helmet Color Base</span>
+  </li>
+  <li data-text="paint firefighter axe spraycan_colorbase firefighteraxe ">
+    <span class="rname">Paint firefighter axe</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Firefighter Axe</span>
+  </li>
+  <li data-text="paint ghillie att black spraycan_black ghillieatt_woodland ">
+    <span class="rname">Paint ghillie att black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">Ghillie Att Woodland</span>
+  </li>
+  <li data-text="paint ghillie att green spraycan_green ghillieatt_tan ghillieatt_woodland">
+    <span class="rname">Paint ghillie att green</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Att Tan</span>
+<span class="arrow">→</span><span class="res">Ghillie Att Woodland</span>  </li>
+  <li data-text="paint ghillie att green mossy spraycan_green ghillieatt_mossy ">
+    <span class="rname">Paint ghillie att green mossy</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Att Mossy</span>
+  </li>
+  <li data-text="paint ghillie bushrag black spraycan_black ghilliebushrag_woodland ">
+    <span class="rname">Paint ghillie bushrag black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">Ghillie Bushrag Woodland</span>
+  </li>
+  <li data-text="paint ghillie bushrag green spraycan_green ghilliebushrag_tan ghilliebushrag_woodland">
+    <span class="rname">Paint ghillie bushrag green</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Bushrag Tan</span>
+<span class="arrow">→</span><span class="res">Ghillie Bushrag Woodland</span>  </li>
+  <li data-text="paint ghillie bushrag green mossy spraycan_green ghilliebushrag_mossy ">
+    <span class="rname">Paint ghillie bushrag green mossy</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Bushrag Mossy</span>
+  </li>
+  <li data-text="paint ghillie hood black spraycan_black ghilliehood_woodland ghilliehood_mossy">
+    <span class="rname">Paint ghillie hood black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">Ghillie Hood Woodland</span>
+<span class="arrow">→</span><span class="res">Ghillie Hood Mossy</span>  </li>
+  <li data-text="paint ghillie hood green spraycan_green ghilliehood_tan ">
+    <span class="rname">Paint ghillie hood green</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Hood Tan</span>
+  </li>
+  <li data-text="paint ghillie hood green mossy spraycan_green ghilliehood_mossy ">
+    <span class="rname">Paint ghillie hood green mossy</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Hood Mossy</span>
+  </li>
+  <li data-text="paint ghillie suit black spraycan_black ghilliesuit_woodland ghilliesuit_mossy">
+    <span class="rname">Paint ghillie suit black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">Ghillie Suit Woodland</span>
+<span class="arrow">→</span><span class="res">Ghillie Suit Mossy</span>  </li>
+  <li data-text="paint ghillie suit green spraycan_green ghilliesuit_tan ">
+    <span class="rname">Paint ghillie suit green</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Suit Tan</span>
+  </li>
+  <li data-text="paint ghillie suit green mossy spraycan_green ghilliesuit_mossy ">
+    <span class="rname">Paint ghillie suit green mossy</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Suit Mossy</span>
+  </li>
+  <li data-text="paint ghillie top black spraycan_black ghillietop_woodland ">
+    <span class="rname">Paint ghillie top black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">Ghillie Top Woodland</span>
+  </li>
+  <li data-text="paint ghillie top green spraycan_green ghillietop_tan ">
+    <span class="rname">Paint ghillie top green</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Top Tan</span>
+  </li>
+  <li data-text="paint ghillie top green mossy spraycan_green ghillietop_mossy ">
+    <span class="rname">Paint ghillie top green mossy</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Ghillie Top Mossy</span>
+  </li>
+  <li data-text="paint gorka helmet spraycan_colorbase gorkahelmet ">
+    <span class="rname">Paint gorka helmet</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Gorka Helmet</span>
+  </li>
+  <li data-text="paint gorka helmet complete spraycan_colorbase gorkahelmetcomplete ">
+    <span class="rname">Paint gorka helmet complete</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Gorka Helmet Complete</span>
+  </li>
+  <li data-text="paint m4a1 spraycan_colorbase m4a1 ">
+    <span class="rname">Paint m4a1</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">M4A1</span>
+  </li>
+  <li data-text="paint m4cqb bttstck spraycan_colorbase m4_cqbbttstck ">
+    <span class="rname">Paint m4cqb bttstck</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">M4 CQB Bttstck</span>
+  </li>
+  <li data-text="paint m4mp bttstck spraycan_colorbase m4_mpbttstck ">
+    <span class="rname">Paint m4mp bttstck</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">M4 MP Bttstck</span>
+  </li>
+  <li data-text="paint m4mp hndgrd spraycan_colorbase m4_mphndgrd ">
+    <span class="rname">Paint m4mp hndgrd</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">M4 MP Hndgrd</span>
+  </li>
+  <li data-text="paint m4oe bttstck spraycan_colorbase m4_oebttstck ">
+    <span class="rname">Paint m4oe bttstck</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">M4 OE Bttstck</span>
+  </li>
+  <li data-text="paint m4plastic hndgrd spraycan_colorbase m4_plastichndgrd ">
+    <span class="rname">Paint m4plastic hndgrd</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">M4 Plastic Hndgrd</span>
+  </li>
+  <li data-text="paint m4ris hndgrd spraycan_colorbase m4_rishndgrd ">
+    <span class="rname">Paint m4ris hndgrd</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">M4 RIS Hndgrd</span>
+  </li>
+  <li data-text="paint mosin spraycan_colorbase mosin9130 mosin9130_black mosin9130_green mosin9130_camo ">
+    <span class="rname">Paint mosin</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Mosin 9130 / Mosin 9130 Black / Mosin 9130 Green / Mosin 9130 Camo</span>
+  </li>
+  <li data-text="paint mosin camo black spraycan_black mosin9130_green ">
+    <span class="rname">Paint mosin camo black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">Mosin 9130 Green</span>
+  </li>
+  <li data-text="paint mosin camo green spraycan_green mosin9130_black ">
+    <span class="rname">Paint mosin camo green</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Mosin 9130 Black</span>
+  </li>
+  <li data-text="paint motohelmet spraycan_colorbase motohelmet_colorbase ">
+    <span class="rname">Paint motohelmet</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Moto Helmet Color Base</span>
+  </li>
+  <li data-text="paint ruger 1022 spraycan_colorbase ruger1022 ">
+    <span class="rname">Paint ruger 1022</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Ruger 1022</span>
+  </li>
+  <li data-text="paint sawedoff mosin spraycan_colorbase sawedoffmosin9130 ">
+    <span class="rname">Paint sawedoff mosin</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Sawedoff Mosin 9130</span>
+  </li>
+  <li data-text="paint sawedoff mosin camo black spraycan_black sawedoffmosin9130_green ">
+    <span class="rname">Paint sawedoff mosin camo black</span>
+    <span class="ing">Spraycan Black</span><span class="plus">+</span><span class="ing">Sawedoff Mosin 9130 Green</span>
+  </li>
+  <li data-text="paint sawedoff mosin camo green spraycan_green sawedoffmosin9130_black ">
+    <span class="rname">Paint sawedoff mosin camo green</span>
+    <span class="ing">Spraycan Green</span><span class="plus">+</span><span class="ing">Sawedoff Mosin 9130 Black</span>
+  </li>
+  <li data-text="paint sks spraycan_colorbase sks ">
+    <span class="rname">Paint sks</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">SKS</span>
+  </li>
+  <li data-text="paint z sh3pilot helmet spraycan_colorbase zsh3pilothelmet ">
+    <span class="rname">Paint z sh3pilot helmet</span>
+    <span class="ing">Spraycan Color Base</span><span class="plus">+</span><span class="ing">Z Sh3Pilot Helmet</span>
+  </li>
+  <li data-text="patch item leathersewingkit sewingkit tirerepairkit inventory_base ">
+    <span class="rname">Patch item</span>
+    <span class="ing">Leather Sewing Kit / Sewing Kit / Tire Repair Kit</span><span class="plus">+</span><span class="ing">Inventory Base</span>
+  </li>
+  <li data-text="peel potato potatoseed sickle kukriknife fangeknife hacksaw kitchenknife steakknife stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet sword screwdriver hatchet handsaw boneknife potato">
+    <span class="rname">Peel potato</span>
+    <span class="ing">Potato Seed</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Sword / Screwdriver / Hatchet / Hand Saw / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Potato</span>  </li>
+  <li data-text="poke holes barrel barrel_colorbase sickle kukriknife fangeknife hacksaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet barrelholes_">
+    <span class="rname">Poke holes barrel</span>
+    <span class="ing">Barrel Color Base</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet</span>
+<span class="arrow">→</span><span class="res">Barrel Holes </span>  </li>
+  <li data-text="pour liquid pot canistergasoline canteen waterbottle filteringbottle glassbottle waterpouch_colorbase barrel_colorbase pot canistergasoline canteen waterbottle filteringbottle glassbottle waterpouch_colorbase barrel_colorbase ">
+    <span class="rname">Pour liquid</span>
+    <span class="ing">Pot / Canister Gasoline / Canteen / Water Bottle / Filtering Bottle / Glass Bottle / Water Pouch Color Base / Barrel Color Base</span><span class="plus">+</span><span class="ing">Pot / Canister Gasoline / Canteen / Water Bottle / Filtering Bottle / Glass Bottle / Water Pouch Color Base / Barrel Color Base</span>
+  </li>
+  <li data-text="purify water purificationtablets pot canistergasoline disinfectantalcohol canteen waterbottle filteringbottle glassbottle waterpouch_colorbase barrel_colorbase cauldron ">
+    <span class="rname">Purify water</span>
+    <span class="ing">Purification Tablets</span><span class="plus">+</span><span class="ing">Pot / Canister Gasoline / Disinfectant Alcohol / Canteen / Water Bottle / Filtering Bottle / Glass Bottle / Water Pouch Color Base / Barrel Color Base / Cauldron</span>
+  </li>
+  <li data-text="rabbit deadrabbit bone rabbitpelt">
+    <span class="rname">Rabbit</span>
+    <span class="ing">Dead Rabbit</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Bone, Rabbit Pelt</span>  </li>
+  <li data-text="rabbit snare woodenstick metalwire rabbitsnaretrap">
+    <span class="rname">Rabbit snare</span>
+    <span class="ing">Wooden Stick</span><span class="plus">+</span><span class="ing">Metal Wire</span>
+<span class="arrow">→</span><span class="res">Rabbit Snare Trap</span>  </li>
+  <li data-text="rag sickle hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife kukriknife fangeknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet farminghoe shovel fieldshovel boneknife iceaxe rag">
+    <span class="rname">Rag</span>
+    <span class="ing">Sickle / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Kukri Knife / Fange Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Farming Hoe / Shovel / Field Shovel / Bone Knife / Iceaxe</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Rag</span>  </li>
+  <li data-text="rag rope rag rag rope">
+    <span class="rname">Rag rope</span>
+    <span class="ing">Rag</span><span class="plus">+</span><span class="ing">Rag</span>
+<span class="arrow">→</span><span class="res">Rope</span>  </li>
+  <li data-text="refuel torch rag torch longtorch ">
+    <span class="rname">Refuel torch</span>
+    <span class="ing">Rag</span><span class="plus">+</span><span class="ing">Torch / Long Torch</span>
+  </li>
+  <li data-text="repair electric electronicrepairkit inventory_base ">
+    <span class="rname">Repair electric</span>
+    <span class="ing">Electronic Repair Kit</span><span class="plus">+</span><span class="ing">Inventory Base</span>
+  </li>
+  <li data-text="repair epoxy epoxyputty inventory_base defaultweapon ">
+    <span class="rname">Repair epoxy</span>
+    <span class="ing">Epoxy Putty</span><span class="plus">+</span><span class="ing">Inventory Base / Default Weapon</span>
+  </li>
+  <li data-text="repair eye patch eyepatch_improvised rag ">
+    <span class="rname">Repair eye patch</span>
+    <span class="ing">Eye Patch Improvised</span><span class="plus">+</span><span class="ing">Rag</span>
+  </li>
+  <li data-text="repair planks woodenplank woodencrate seachest ">
+    <span class="rname">Repair planks</span>
+    <span class="ing">Wooden Plank</span><span class="plus">+</span><span class="ing">Wooden Crate / Sea Chest</span>
+  </li>
+  <li data-text="repair with leather sewing kit leathersewingkit inventory_base ">
+    <span class="rname">Repair with leather sewing kit</span>
+    <span class="ing">Leather Sewing Kit</span><span class="plus">+</span><span class="ing">Inventory Base</span>
+  </li>
+  <li data-text="repair with pliers pliers chainmail chainmail_coif chainmail_leggings witchhoodcoif_colorbase ">
+    <span class="rname">Repair with pliers</span>
+    <span class="ing">Pliers</span><span class="plus">+</span><span class="ing">Chainmail / Chainmail Coif / Chainmail Leggings / Witch Hood Coif Color Base</span>
+  </li>
+  <li data-text="repair with rags headcover_improvised handscover_improvised legscover_improvised feetcover_improvised facecover_improvised torsocover_improvised rag ">
+    <span class="rname">Repair with rags</span>
+    <span class="ing">Head Cover Improvised / Hands Cover Improvised / Legs Cover Improvised / Feet Cover Improvised / Face Cover Improvised / Torso Cover Improvised</span><span class="plus">+</span><span class="ing">Rag</span>
+  </li>
+  <li data-text="repair with sewing kit sewingkit inventory_base ">
+    <span class="rname">Repair with sewing kit</span>
+    <span class="ing">Sewing Kit</span><span class="plus">+</span><span class="ing">Inventory Base</span>
+  </li>
+  <li data-text="repair with tape ducttape inventory_base defaultweapon defaultmagazine ">
+    <span class="rname">Repair with tape</span>
+    <span class="ing">Duct Tape</span><span class="plus">+</span><span class="ing">Inventory Base / Default Weapon / Default Magazine</span>
+  </li>
+  <li data-text="repair with tire kit tirerepairkit inventory_base ">
+    <span class="rname">Repair with tire kit</span>
+    <span class="ing">Tire Repair Kit</span><span class="plus">+</span><span class="ing">Inventory Base</span>
+  </li>
+  <li data-text="saline bag iv startkitiv salinebag salinebagiv">
+    <span class="rname">Saline bag iv</span>
+    <span class="ing">Start Kit IV</span><span class="plus">+</span><span class="ing">Saline Bag</span>
+<span class="arrow">→</span><span class="res">Saline Bag IV</span>  </li>
+  <li data-text="saw off izh 18 izh18 hacksaw ">
+    <span class="rname">Saw off izh 18</span>
+    <span class="ing">Izh 18</span><span class="plus">+</span><span class="ing">Hacksaw</span>
+  </li>
+  <li data-text="saw off izh 18shotgun izh18shotgun hacksaw ">
+    <span class="rname">Saw off izh 18shotgun</span>
+    <span class="ing">Izh 18Shotgun</span><span class="plus">+</span><span class="ing">Hacksaw</span>
+  </li>
+  <li data-text="saw off magnum magnum hacksaw ">
+    <span class="rname">Saw off magnum</span>
+    <span class="ing">Magnum</span><span class="plus">+</span><span class="ing">Hacksaw</span>
+  </li>
+  <li data-text="saw offb95 b95 hacksaw ">
+    <span class="rname">Saw offb95</span>
+    <span class="ing">B95</span><span class="plus">+</span><span class="ing">Hacksaw</span>
+  </li>
+  <li data-text="saw wooden log hacksaw handsaw woodaxe hatchet firefighteraxe woodenlog firewood firewood firewood">
+    <span class="rname">Saw wooden log</span>
+    <span class="ing">Hacksaw / Hand Saw / Wood Axe / Hatchet / Firefighter Axe</span><span class="plus">+</span><span class="ing">Wooden Log</span>
+<span class="arrow">→</span><span class="res">Firewood, Firewood, Firewood</span>  </li>
+  <li data-text="sawoff famas famas hacksaw ">
+    <span class="rname">Sawoff famas</span>
+    <span class="ing">FAMAS</span><span class="plus">+</span><span class="ing">Hacksaw</span>
+  </li>
+  <li data-text="sawoff mosin mosin9130 hacksaw ">
+    <span class="rname">Sawoff mosin</span>
+    <span class="ing">Mosin 9130</span><span class="plus">+</span><span class="ing">Hacksaw</span>
+  </li>
+  <li data-text="sawoff mosin painted mosin9130_black mosin9130_green mosin9130_camo hacksaw ">
+    <span class="rname">Sawoff mosin painted</span>
+    <span class="ing">Mosin 9130 Black / Mosin 9130 Green / Mosin 9130 Camo</span><span class="plus">+</span><span class="ing">Hacksaw</span>
+  </li>
+  <li data-text="sawoff shotgun izh 43 izh43shotgun hacksaw ">
+    <span class="rname">Sawoff shotgun izh 43</span>
+    <span class="ing">Izh 43Shotgun</span><span class="plus">+</span><span class="ing">Hacksaw</span>
+  </li>
+  <li data-text="sharpen broom broom sickle kukriknife fangeknife hacksaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife woodenstick sharpwoodenstick">
+    <span class="rname">Sharpen broom</span>
+    <span class="ing">Broom</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Wooden Stick, Sharp Wooden Stick</span>  </li>
+  <li data-text="sharpen long stick longwoodenstick sickle kukriknife fangeknife hacksaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife sharpwoodenstick">
+    <span class="rname">Sharpen long stick</span>
+    <span class="ing">Long Wooden Stick</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Sharp Wooden Stick</span>  </li>
+  <li data-text="sharpen melee whetstone inventory_base ">
+    <span class="rname">Sharpen melee</span>
+    <span class="ing">Whetstone</span><span class="plus">+</span><span class="ing">Inventory Base</span>
+  </li>
+  <li data-text="sharpen stick woodenstick sickle kukriknife fangeknife hacksaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife ammo_sharpstick">
+    <span class="rname">Sharpen stick</span>
+    <span class="ing">Wooden Stick</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Ammo Sharp Stick</span>  </li>
+  <li data-text="shelter kit woodenstick ammo_sharpstick shelterkit">
+    <span class="rname">Shelter kit</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Wooden Stick / Ammo Sharp Stick</span>
+<span class="arrow">→</span><span class="res">Shelter Kit</span>  </li>
+  <li data-text="small fish trap waterbottle sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife iceaxe smallfishtrap">
+    <span class="rname">Small fish trap</span>
+    <span class="ing">Water Bottle</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife / Iceaxe</span>
+<span class="arrow">→</span><span class="res">Small Fish Trap</span>  </li>
+  <li data-text="spear bone boneknife longwoodenstick sharpwoodenstick spearbone">
+    <span class="rname">Spear bone</span>
+    <span class="ing">Bone Knife</span><span class="plus">+</span><span class="ing">Long Wooden Stick / Sharp Wooden Stick</span>
+<span class="arrow">→</span><span class="res">Spear Bone</span>  </li>
+  <li data-text="spear stone stoneknife longwoodenstick sharpwoodenstick spearstone">
+    <span class="rname">Spear stone</span>
+    <span class="ing">Stone Knife</span><span class="plus">+</span><span class="ing">Long Wooden Stick / Sharp Wooden Stick</span>
+<span class="arrow">→</span><span class="res">Spear Stone</span>  </li>
+  <li data-text="splint bandagedressing rag ducttape shemag_colorbase woodenstick splint">
+    <span class="rname">Splint</span>
+    <span class="ing">Bandage Dressing / Rag / Duct Tape / Shemag Color Base</span><span class="plus">+</span><span class="ing">Wooden Stick</span>
+<span class="arrow">→</span><span class="res">Splint</span>  </li>
+  <li data-text="split broom broom broom_birch sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife woodenstick longwoodenstick">
+    <span class="rname">Split broom</span>
+    <span class="ing">Broom / Broom Birch</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Wooden Stick, Long Wooden Stick</span>  </li>
+  <li data-text="split firewood firewood woodenstick">
+    <span class="rname">Split firewood</span>
+    <span class="ing">Firewood</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Wooden Stick</span>  </li>
+  <li data-text="split long wooden stick longwoodenstick sharpwoodenstick sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife woodenstick">
+    <span class="rname">Split long wooden stick</span>
+    <span class="ing">Long Wooden Stick / Sharp Wooden Stick</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife</span>
+<span class="arrow">→</span><span class="res">Wooden Stick</span>  </li>
+  <li data-text="split stones stone pickaxe sledgehammer hammer mace smallstone smallstone smallstone">
+    <span class="rname">Split stones</span>
+    <span class="ing">Stone</span><span class="plus">+</span><span class="ing">Pickaxe / Sledge Hammer / Hammer / Mace</span>
+<span class="arrow">→</span><span class="res">Small Stone, Small Stone, Small Stone</span>  </li>
+  <li data-text="steelhead trout steelheadtrout steelheadtroutfilletmeat steelheadtroutfilletmeat redcaviar">
+    <span class="rname">Steelhead trout</span>
+    <span class="ing">Steelhead Trout</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Steelhead Trout Fillet Meat, Steelhead Trout Fillet Meat, Red Caviar</span>  </li>
+  <li data-text="stone knife smallstone smallstone stone stoneknife">
+    <span class="rname">Stone knife</span>
+    <span class="ing">Small Stone</span><span class="plus">+</span><span class="ing">Small Stone / Stone</span>
+<span class="arrow">→</span><span class="res">Stone Knife</span>  </li>
+  <li data-text="suppressor waterbottle ducttape improvisedsuppressor">
+    <span class="rname">Suppressor</span>
+    <span class="ing">Water Bottle</span><span class="plus">+</span><span class="ing">Duct Tape</span>
+<span class="arrow">→</span><span class="res">Improvised Suppressor</span>  </li>
+  <li data-text="tanned leather pelt_base gardenlime ">
+    <span class="rname">Tanned leather</span>
+    <span class="ing">Pelt Base</span><span class="plus">+</span><span class="ing">Garden Lime</span>
+  </li>
+  <li data-text="territory flag kit woodenstick ammo_sharpstick territoryflagkit">
+    <span class="rname">Territory flag kit</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Wooden Stick / Ammo Sharp Stick</span>
+<span class="arrow">→</span><span class="res">Territory Flag Kit</span>  </li>
+  <li data-text="test 3 ingredients bloodtestkit bloodsyringe ">
+    <span class="rname">Test 3 ingredients</span>
+    <span class="ing">Blood Test Kit</span><span class="plus">+</span><span class="ing">Blood Syringe</span>
+  </li>
+  <li data-text="test 3 ingredients bloodtestkit bloodsyringe ">
+    <span class="rname">Test 3 ingredients</span>
+    <span class="ing">Blood Test Kit</span><span class="plus">+</span><span class="ing">Blood Syringe</span>
+  </li>
+  <li data-text="torch rag woodenstick ammo_sharpstick torch">
+    <span class="rname">Torch</span>
+    <span class="ing">Rag</span><span class="plus">+</span><span class="ing">Wooden Stick / Ammo Sharp Stick</span>
+<span class="arrow">→</span><span class="res">Torch</span>  </li>
+  <li data-text="trip wire woodenstick metalwire tripwiretrap">
+    <span class="rname">Trip wire</span>
+    <span class="ing">Wooden Stick</span><span class="plus">+</span><span class="ing">Metal Wire</span>
+<span class="arrow">→</span><span class="res">Tripwire Trap</span>  </li>
+  <li data-text="truck 01double wheel truck_01_wheel truck_01_wheel truck_01_wheeldouble">
+    <span class="rname">Truck 01double wheel</span>
+    <span class="ing">Truck 01 Wheel</span><span class="plus">+</span><span class="ing">Truck 01 Wheel</span>
+<span class="arrow">→</span><span class="res">Truck 01 Wheel Double</span>  </li>
+  <li data-text="upgrade torch with lard lard torch longtorch ">
+    <span class="rname">Upgrade torch with lard</span>
+    <span class="ing">Lard</span><span class="plus">+</span><span class="ing">Torch / Long Torch</span>
+  </li>
+  <li data-text="upgrade torch with liquid fuel bottle_base barrel_colorbase torch longtorch ">
+    <span class="rname">Upgrade torch with liquid fuel</span>
+    <span class="ing">Bottle Base / Barrel Color Base</span><span class="plus">+</span><span class="ing">Torch / Long Torch</span>
+  </li>
+  <li data-text="walleye pollock walleyepollock walleyepollockfilletmeat walleyepollockfilletmeat">
+    <span class="rname">Walleye pollock</span>
+    <span class="ing">Walleye Pollock</span><span class="plus">+</span><span class="ing"></span>
+<span class="arrow">→</span><span class="res">Walleye Pollock Fillet Meat, Walleye Pollock Fillet Meat</span>  </li>
+  <li data-text="watchtower kit woodenstick ammo_sharpstick watchtowerkit">
+    <span class="rname">Watchtower kit</span>
+    <span class="ing"></span><span class="plus">+</span><span class="ing">Wooden Stick / Ammo Sharp Stick</span>
+<span class="arrow">→</span><span class="res">Watchtower Kit</span>  </li>
+  <li data-text="witch hood coif witchhood_colorbase chainmail_coif witchhoodcoif_">
+    <span class="rname">Witch hood coif</span>
+    <span class="ing">Witch Hood Color Base</span><span class="plus">+</span><span class="ing">Chainmail Coif</span>
+<span class="arrow">→</span><span class="res">Witch Hood Coif </span>  </li>
+  <li data-text="wooden crate woodenplank nail woodencrate">
+    <span class="rname">Wooden crate</span>
+    <span class="ing">Wooden Plank</span><span class="plus">+</span><span class="ing">Nail</span>
+<span class="arrow">→</span><span class="res">Wooden Crate</span>  </li>
+  <li data-text="wooden hook woodenstick sickle kukriknife fangeknife hacksaw handsaw kitchenknife steakknife hayhook stoneknife cleaver combatknife huntingknife machete crudemachete orientalmachete screwdriver crowbar pickaxe woodaxe hatchet firefighteraxe sword ak_bayonet m9a1_bayonet mosin_bayonet sks_bayonet boneknife iceaxe woodenhook woodenhook">
+    <span class="rname">Wooden hook</span>
+    <span class="ing">Wooden Stick</span><span class="plus">+</span><span class="ing">Sickle / Kukri Knife / Fange Knife / Hacksaw / Hand Saw / Kitchen Knife / Steak Knife / Hay Hook / Stone Knife / Cleaver / Combat Knife / Hunting Knife / Machete / Crude Machete / Oriental Machete / Screwdriver / Crowbar / Pickaxe / Wood Axe / Hatchet / Firefighter Axe / Sword / AK Bayonet / M9A1 Bayonet / Mosin Bayonet / SKS Bayonet / Bone Knife / Iceaxe</span>
+<span class="arrow">→</span><span class="res">Wooden Hook, Wooden Hook</span>  </li>
+  <li data-text="wooden plank woodenlog hacksaw handsaw woodenplank">
+    <span class="rname">Wooden plank</span>
+    <span class="ing">Wooden Log</span><span class="plus">+</span><span class="ing">Hacksaw / Hand Saw</span>
+<span class="arrow">→</span><span class="res">Wooden Plank</span>  </li>
+  <li data-text="write letter pen_colorbase paper ">
+    <span class="rname">Write letter</span>
+    <span class="ing">Pen Color Base</span><span class="plus">+</span><span class="ing">Paper</span>
+  </li>
+</ul>
+    </main>
+  </div>
+  <footer class="foot">
+    <span>Loot, spawn and server figures apply to PureZ servers, not unmodded DayZ.</span>
+    <span>Not affiliated with Bohemia Interactive.</span>
+  </footer>
+</body>
+</html>
