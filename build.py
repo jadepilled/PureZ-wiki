@@ -153,8 +153,21 @@ def sentence(t):
     return " ".join(w if i == 0 or not re.fullmatch(r"[A-Z][a-z]+", w) else w.lower() for i, w in enumerate(words))
 
 
+# Stand-in spellings for class names that humanize() gets wrong, until config display names are extracted
+TITLE_FIX = {"ASVAL": "AS VAL", "PSO11Optic": "PSO-1-1 optic", "PSO1Optic": "PSO-1 optic", "PSO6Optic": "PSO-6 optic",
+             "Izh18": "IZH-18", "Izh18Shotgun": "IZH-18 shotgun", "Izh43Shotgun": "IZH-43 shotgun", "Mp133Shotgun": "MP-133 shotgun",
+             "M18SmokeGrenade": "M18 smoke grenade", "M67Grenade": "M67 grenade", "RDG2SmokeGrenade": "RDG-2 smoke grenade",
+             "RGD5Grenade": "RGD-5 grenade", "PM73Rak": "PM-73 RAK", "MakarovIJ70": "Makarov IJ-70", "LeeEnfield": "Lee-Enfield",
+             "M68Optic": "M68 optic", "MK4Optic": "MK4 optic", "Mag_AKM_Palm30Rnd": "AKM 30rd magazine (palm)",
+             "Fal_OeBttstck": "FAL OE buttstock", "Fal_FoldingBttstck": "FAL folding buttstock", "MP5k_StockBttstck": "MP5K stock buttstock",
+             "Mag_Aug_30Rnd": "AUG 30rd magazine", "Aug": "AUG", "AugShort": "AUG short", "SVD_Wooden": "SVD, wooden",
+             "Crossbow_Wood": "Crossbow, wooden", "Engraved1911": "Engraved 1911", "Colt1911": "Colt 1911"}
+
+
 def item_title(cls):
     """Readable stand-in names until config display names are extracted."""
+    if cls in TITLE_FIX:
+        return TITLE_FIX[cls]
     m = re.match(r"(?i)^Ammo_40mm_(\w+)$", cls)
     if m:
         return sentence(f"40mm {humanize(m.group(1))} grenade")
@@ -171,6 +184,7 @@ def item_title(cls):
     t = humanize(cls)
     for a, b in (("Bttstck", "Buttstock"), ("Hndgrd", "Handguard")):
         t = t.replace(a, b)
+    t = re.sub(r"(\d)(Optic|Shotgun|Grenade)\b", r"\1 \2", t)
     return sentence(t)
 
 
