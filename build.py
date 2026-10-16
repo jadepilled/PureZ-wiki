@@ -428,6 +428,9 @@ class Wiki:
                               "k": CAT[p["category"]][1] if p["category"] in CAT else ""})
         with open(os.path.join(OUT, "static", "search.json"), "w", encoding="utf-8") as f:
             json.dump(index, f, separators=(",", ":"))
+        # class -> page title, colour variants included; the map uses this for item names
+        with open(os.path.join(OUT, "static", "names.json"), "w", encoding="utf-8") as f:
+            json.dump({c: p["title"] for c, p in sorted(self.by_class.items())}, f, separators=(",", ":"))
         with open(os.path.join(OUT, "404.html"), "w", encoding="utf-8") as f:
             f.write(env.get_template("page.html").render(**self.base_ctx(), page={"title": "Not found", "category": ""},
                                                           body="<p>That page doesn't exist. Try the search.</p>"))
