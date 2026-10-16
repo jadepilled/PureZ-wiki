@@ -1,12 +1,14 @@
 // Search, sound playback and list filters for the PureZ wiki.
 (() => {
+  // the site may be served from a subpath (github.io/<repo>) as well as from its own domain
+  const base = new URL(document.currentScript.src).pathname.replace(/\/static\/wiki\.js$/, "");
   const q = document.getElementById("q");
   const results = document.getElementById("results");
   let index = null, sel = -1;
 
   const load = async () => {
     if (index) return index;
-    try { index = await (await fetch("/static/search.json")).json(); } catch { index = []; }
+    try { index = await (await fetch(`${base}/static/search.json`)).json(); } catch { index = []; }
     return index;
   };
 
@@ -32,7 +34,7 @@
       li.setAttribute("role", "option");
       li.setAttribute("aria-selected", i === sel);
       const a = document.createElement("a");
-      a.href = e.u;
+      a.href = base + e.u;
       a.append(document.createTextNode(e.t));
       const small = document.createElement("small");
       small.textContent = e.k;

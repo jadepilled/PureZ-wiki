@@ -23,7 +23,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: python build.py
+      - id: pages
+        uses: actions/configure-pages@v5
+      - run: python build.py --base "${{ steps.pages.outputs.base_path }}"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

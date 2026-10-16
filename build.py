@@ -197,8 +197,9 @@ def humanize(cls):
 
 
 class Wiki:
-    def __init__(self, preview):
+    def __init__(self, preview, base=""):
         self.preview = preview
+        self.base = base.rstrip("/")          # URL prefix when served from a subpath (github.io/<repo>)
         self.mission = load_json("mission.json")
         self.scripts = load_json("scripts.json")
         self.configs = load_json("configs.json")
@@ -433,6 +434,8 @@ class Wiki:
                    "crafting.html" if p["url"] == "/crafting/" else
                    "category.html" if p["src"].endswith("index.md") and p["category"] in CAT else "page.html")
             html = env.get_template(tpl).render(**ctx)
+            if self.base:
+                html = re.sub(r'(href|src)="/', rf'\1="{self.base}/', html)
             dest = os.path.join(OUT, p["url"].strip("/"), "index.html")
             os.makedirs(os.path.dirname(dest), exist_ok=True)
             with open(dest, "w", encoding="utf-8") as f:
@@ -446,8 +449,9 @@ class Wiki:
         with open(os.path.join(OUT, "static", "names.json"), "w", encoding="utf-8") as f:
             json.dump({c: p["title"] for c, p in sorted(self.by_class.items())}, f, separators=(",", ":"))
         with open(os.path.join(OUT, "404.html"), "w", encoding="utf-8") as f:
-            f.write(env.get_template("page.html").render(**self.base_ctx(), page={"title": "Not found", "category": ""},
-                                                          body="<p>That page doesn't exist. Try the search.</p>"))
+            html = env.get_template("page.html").render(**self.base_ctx(), page={"title": "Not found", "category": ""},
+                                                        body="<p>That page doesn't exist. Try the search.</p>")
+            f.write(re.sub(r'(href|src)="/', rf'\1="{self.base}/', html) if self.base else html)
         return len(self.pages)
 
     def base_ctx(self):
@@ -789,12 +793,13 @@ def duration(sec):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--preview", action="store_true")
+    ap.add_argument("--base", default="", help="URL prefix when the site is served from a subpath, e.g. /PureZ-wiki")
     a = ap.parse_args()
     env = Environment(loader=FileSystemLoader(os.path.join(ROOT, "templates")), autoescape=select_autoescape(["html"]),
                       trim_blocks=True, lstrip_blocks=True)
     env.filters.update(num=fmt_num, delta=delta, duration=duration, humanize=humanize, unit=fmt_unit,
                        pct=lambda v, d=0: "–" if v is None else f"{v * 100:.{d}f}%")
-    w = Wiki(a.preview)
+    w = Wiki(a.preview, a.base)
     w.collect()
     n = w.render(env)
     print(f"built {n} pages -> {OUT}")
