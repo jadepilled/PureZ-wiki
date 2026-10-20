@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crumbs, stat %}
+{% block main %}
+<p class="crumbs"><a href="/locations/">Locations</a> <span class="muted">/</span> <a href="/locations/#{{ place.mapName | lower }}">{{ place.mapName }}</a></p>
+<header class="item-head">
+  <h1>{{ page.title }}</h1>
+  <p class="meta"><span class="chip">{{ place.kind }}</span><span class="chip">{{ place.mapName }}</span></p>
+</header>
+<dl class="facts">
+  {{ stat("Grid", place.grid) }}
+  {{ stat("Position", "X " ~ place.x ~ ", Z " ~ place.z) }}
+</dl>
+<p class="maplink"><a href="{{ place.mapUrl }}">Open on the map</a></p>
+{% if place.nearby %}
+<details class="block" open>
+  <summary><h2>Nearby</h2></summary>
+  <ul class="list">{% for n in place.nearby %}<li><a href="{{ n.url }}"><span>{{ n.title }}</span><small class="muted">{{ n.kind }} · {{ n.distance }} km</small></a></li>{% endfor %}</ul>
+</details>
+{% endif %}
+{% endblock %}

@@ -27,6 +27,7 @@ CATEGORIES = [
     ("medical", "Medical", "Treatment, drugs and what they cure."),
     ("food", "Food & drink", "Nutrition and safe consumption."),
     ("vehicles", "Vehicles", "Spawns, parts and capacities."),
+    ("locations", "Locations", "Towns, villages and landmarks, by map."),
     ("health", "Health", "Diseases and status effects."),
     ("crafting", "Crafting", "Every recipe and what it needs."),
     ("server", "Server", "Economy, infected and gameplay settings."),
@@ -82,6 +83,7 @@ FOOD_STAGES = ["Raw", "Baked", "Boiled", "Dried", "Burned", "Rotten"]
 VEHICLE_BASES = {"CarScript", "MotorbikeScript", "BoatScript"}
 MELEE_NAME = re.compile(r"Axe|Hatchet|Machete|Knife|Bat$|Knuckles|Cleaver|Scimitar|Crowbar|SledgeHammer|Pickaxe|Pitchfork|Sickle|Tenderizer|Baton|Katana|Sword|Akinaka|Jambiya|HayHook|Iceaxe|Shovel$|Pipe$|Broom$")
 MISSIONS = [("nasdara", "PureZ Nasdara", "nasdara"), ("chernarus", "PureZ Chernarus", "chernarus")]   # (file id, label, map id on map.purez.gg)
+PLACE_KINDS = ["Capital", "City", "Village", "Local name", "Marine", "Camp", "Ruin"]
 
 
 def insulation(v):
@@ -211,6 +213,7 @@ SUBCATS = {
     "food": ["Canned", "Drinks", "Fruit and vegetables", "Meat and fish", "Snacks and dry goods", "Seeds", "Other"],
     "vehicles": ["Cars", "Trucks", "Motorbikes", "Boats", "Parts", "Other"],
     "health": ["Diseases", "Guides"],
+    "locations": ["Chernarus", "Nasdara", "Livonia", "Sakhal"],
 }
 PISTOL_ROUNDS = {"Bullet_9x19", "Bullet_45ACP", "Bullet_380", "Bullet_22", "Bullet_357"}
 GEAR_PATTERNS = [
@@ -379,6 +382,8 @@ class Wiki:
         cat, cls = p["category"], p.get("cls")
         if cat == "health":
             return "Diseases" if p.get("disease") else "Guides"
+        if cat == "locations":
+            return p["place"]["mapName"] if p.get("place") else None
         if not cls:
             return None
         sec, c = self.cfg(cls)
@@ -697,6 +702,7 @@ class Wiki:
                     self.by_class[page["cls"]] = page
         self.auto_pages()
         self.index_configs()
+        self.place_pages()
         for g in self.ingredient_groups:
             self.pages.append({"url": f"/crafting/{slugify(g)}/", "meta": {}, "body": "", "src": "", "category": "crafting",
                                "title": g, "group": g})
@@ -951,6 +957,7 @@ class Wiki:
                    "item.html" if p.get("cls") else
                    "disease.html" if p.get("disease") else
                    "group.html" if p.get("group") else
+                   "place.html" if p.get("place") else
                    "server.html" if p["url"] == "/server/" else
                    "crafting.html" if p["url"] == "/crafting/" else
                    "category.html" if p["src"].endswith("index.md") and p["category"] in CAT else "page.html")
@@ -963,7 +970,7 @@ class Wiki:
                 f.write(html)
             if p["url"] != "/":
                 index.append({"t": p["title"], "c": p.get("cls") or "", "u": p["url"],
-                              "k": CAT[p["category"]][1] if p["category"] in CAT else ""})
+                              "k": (p["place"]["mapName"] + " · " + p["place"]["kind"]) if p.get("place") else CAT[p["category"]][1] if p["category"] in CAT else ""})
         with open(os.path.join(OUT, "static", "search.json"), "w", encoding="utf-8") as f:
             json.dump(index, f, separators=(",", ":"))
         # class -> page title, colour variants included; the map uses this for item names
@@ -1008,6 +1015,8 @@ class Wiki:
         if p["url"] == "/crafting/":
             ctx["recipes"] = [self.recipe_view(r) for r in self.scripts.get("recipes", [])]
             ctx["groups"] = [(g, f"/crafting/{slugify(g)}/", len(m)) for g, m in self.ingredient_groups.items()]
+        if p.get("place"):
+            ctx["place"] = self.place_ctx(p)
         if p.get("group"):
             ctx["groupItems"] = [self.link(i) | {"icon": self.icon_for(i)} for i in self.ingredient_groups[p["group"]] if i in self.by_class]
             ctx["groupMembers"] = len(self.ingredient_groups[p["group"]])
@@ -1023,6 +1032,31 @@ class Wiki:
             ctx["children"] = sorted((x for x in self.pages if x["category"] == p["category"] and x is not p),
                                      key=lambda x: (int(x["meta"].get("order", 999)), x["title"]))
         return ctx
+
+    def place_pages(self):
+        """One page per named place on every map, from the map repo's data (extract/places.py)."""
+        path = os.path.join(ROOT, "data", "places.json")
+        if not os.path.exists(path):
+            return
+        with open(path, encoding="utf-8") as f:
+            maps = json.load(f)
+        self.places = maps
+        for mid, m in maps.items():
+            for n, rank, x, z in m["places"]:
+                slug = slugify(n)
+                self.pages.append({"url": f"/locations/{mid}/{slug}/", "meta": {}, "body": "", "src": "", "category": "locations",
+                                   "title": n, "place": {"map": mid, "mapName": m["name"], "kind": PLACE_KINDS[rank] if rank < len(PLACE_KINDS) else "Place",
+                                                         "rank": rank, "x": x, "z": z, "size": m["size"]}})
+
+    def place_ctx(self, p):
+        pl = p["place"]
+        m = self.places[pl["map"]]
+        near = sorted(((math.hypot(x - pl["x"], z - pl["z"]), n, rank, x, z) for n, rank, x, z in m["places"] if n != p["title"]))[:5]
+        grid = f"{int(pl['x'] // 100):03d} {int((pl['size'] - pl['z']) // 100):03d}"
+        return {"kind": pl["kind"], "x": round(pl["x"]), "z": round(pl["z"]), "grid": grid, "mapName": pl["mapName"],
+                "mapUrl": f"{MAP_URL}#{pl['map']}?x={round(pl['x'])}&y={round(pl['z'])}&z=4.5",
+                "nearby": [{"title": n, "url": f"/locations/{pl['map']}/{slugify(n)}/", "kind": PLACE_KINDS[rank] if rank < len(PLACE_KINDS) else "Place",
+                            "distance": round(d / 100) / 10} for d, n, rank, x, z in near]}
 
     def ammo_variants(self, base, members):
         """Each load and box of a round as its own section: what differs from the plain round."""
