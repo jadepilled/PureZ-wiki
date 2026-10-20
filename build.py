@@ -536,7 +536,7 @@ class Wiki:
                 related = [m for m in self.by_ammo.get(c["ammo"], []) if m != cls]
                 out["sameRound"] = self.links(related)
             a = self.configs.get("ammo", {}).get(c.get("ammo") or "", {})
-            if a.get("weight"):
+            if a.get("weight") and (c.get("count") or 1) > 1 and abs(a["weight"] * 1000 - (c.get("weight") or 0)) > 0.5:
                 out["roundWeight"] = f"{a['weight'] * 1000:g} g"
         if sec == "vehicles" and cat == "attachments":
             out["fits"] = self.fits(cls)

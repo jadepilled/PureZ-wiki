@@ -184,6 +184,9 @@ table.data { width: 100%; border-collapse: collapse; font-variant-numeric: tabul
 .recipes .rname { flex-basis: 100%; color: var(--white); font-weight: 600; }
 .recipes .plus, .recipes .arrow { color: var(--red-hi); font-weight: 600; }
 .recipes .res { color: var(--white); }
+.recipes.compact li { padding: 0.45rem 0; }
+.recipes.compact .rname { flex-basis: auto; min-width: 11rem; }
+.recipes .ing.this { color: var(--white); }
 .filter { width: 100%; max-width: 420px; height: 38px; margin-bottom: 1rem; padding: 0 0.9rem; background: var(--panel); color: var(--white); border: 1px solid var(--line); font: 400 0.95rem var(--body); }
 
 /* Prose */

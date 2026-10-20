@@ -259,8 +259,12 @@
   <h2>Crafting</h2>
   {% for label, rs in (("Made from", item.recipes.made), ("Used in", item.recipes.used)) %}{% if rs %}
   <h3>{{ label }}</h3>
-  <ul class="recipes">
-    {% for r in rs %}<li><span class="ing">{{ r.ingredients[0] | map("humanize") | join(" / ") }}</span><span class="plus">+</span><span class="ing">{{ r.ingredients[1] | map("humanize") | join(" / ") }}</span><span class="arrow">→</span><span class="res">{{ r.results | map("humanize") | join(", ") }}</span></li>{% endfor %}
+  <ul class="recipes compact">
+    {% for r in rs %}<li>
+      <span class="rname">{{ r.title }}</span>
+      {% for ing in r.ingredients %}{% set alts = ing | reject("equalto", item.cls) | list %}{% if item.cls in ing %}<span class="ing this">{{ page.title }}</span>{% else %}<span class="ing">{{ (alts[:3] | map("humanize") | join(" / ")) ~ (" + " ~ (alts | length - 3) ~ " more" if alts | length > 3 else "") }}</span>{% endif %}{% if not loop.last %}<span class="plus">+</span>{% endif %}{% endfor %}
+      {% if r.results %}<span class="arrow">→</span><span class="res">{{ r.results | map("humanize") | join(", ") }}</span>{% endif %}
+    </li>{% endfor %}
   </ul>
   {% endif %}{% endfor %}
 </section>

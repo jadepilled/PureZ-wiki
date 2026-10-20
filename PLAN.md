@@ -8,8 +8,8 @@ The goal is a page for every item a PureZ player can find, built from the game f
 |---|---|---|---|
 | PureZ mission (`PureZ.nasdara`) | `extract/mission.py` | Spawn counts, despawn and restock times, locations, tiers, spawn condition, fill levels, spawn attachments, what infected wear and carry, vehicles, infected areas, gameplay settings | Done |
 | DayZ scripts (1.29 public, 1.30 from your dump) | `extract/scripts.py` | Diseases and agents, drug effects per dose, recoil patterns, crafting recipes, item → effect links | Done. Re-run on 1.30 scripts |
-| DayZ configs (1.30) | `extract/configs.py` | Names and descriptions, weight, size, capacity, fire modes and RPM, dispersion, magazines, ammo damage (health, blood, shock), muzzle velocity, ballistic tables, armour, insulation, nutrition, fuel and fluids, sound files, models, colour variants | Built and tested on sample configs. Waiting for your upload |
-| Models and textures | `pipeline/` | Transparent renders, web 3D models | MLOD → GLB → Blender tested. ODOL decoder needs sample files |
+| DayZ configs (1.30) | `extract/configs.py` | Names and descriptions, weight, size, capacity, fire modes and RPM, dispersion, magazines, ammo damage (health, blood, shock), muzzle velocity, ballistic tables, armour, insulation, nutrition, melee damage, optics zoom and zeroing, attachment compatibility, repair kits, vehicle parts and fuel | Done |
+| Models and textures | `pipeline/` | Transparent renders, web 3D models | MLOD → GLB → Blender tested. Game models are ODOL: debinarise with Mikero's DeP3d, then run the pipeline (see `pipeline/README.md`) |
 | Sounds | config sound sets → `media/sounds/` | Gunshot playback per fire mode | Paths resolved from configs. Conversion runs with the media step |
 
 ## 2. Which items get pages
@@ -72,7 +72,7 @@ These are computed rather than read directly, so each will be spot-checked in ga
 
 1. **Now:** framework, design, extractors, demo pages, render pipeline (done).
 2. **When the 1.30 upload lands:** run the config extractor, switch pages to config names, turn on automatic pages for all items, group colour variants.
-3. **ODOL:** send 3–5 `.p3d` files (one weapon, one piece of clothing, one food item, one vehicle part, one building). I'll finish the ODOL decoder against them, then run the full render batch.
+3. **Renders:** debinarise `PureZ-render` with DeP3d, run `layout.py` and the Blender batch, commit `media/`.
 4. **Sounds:** convert weapon sound sets and add players.
 5. **Polish:** spot-checks from section 6, notes on the most-viewed pages, search tuning.
 
