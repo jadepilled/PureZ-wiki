@@ -22,29 +22,32 @@ indices), so nothing needs debinarising first. From the wiki repo on your PC:
 
 1. **Extract configs** (done whenever the game data changes):
    `python extract/configs.py --dz ../PureZ --out data/configs.json`
-2. **Convert models** into the work tree, reading textures from the render folder. Start with one gun:
-   `python pipeline/layout.py --render F:\PureZ\PureZ-render --only AKM`
-   then everything on the wiki: `python pipeline/layout.py --render F:\PureZ\PureZ-render` (every item in any
-   mission's economy, about 2,000 classes; `--all` for every config class with a model). It prints one line per
-   class and ends with the counts; `missing` lines mean the model is not in the render folder.
-3. **Render**: `pipeline\render.bat` (everything, resumable) or `pipeline\render.bat AKM` (one class). It runs
-   `blender --background --factory-startup --python pipeline/blender_render.py -- --work pipeline/work --out media --resume`.
-   Set `BLENDER_EXE` at the top of the batch file if Blender is not at the Blender 5.1 default path.
-   `pipeline\render.bat -- --check` only verifies Blender, the glTF add-on and the work tree.
-   Progress goes to the console and to `pipeline\work\render.log`; failures with tracebacks to `media\renders\report.json`.
-4. Commit `media/`. Pages show the render and 3D model automatically.
+2. **Convert and render in one go**: `pipeline\pipeline.bat` (everything the wiki needs) or
+   `pipeline\pipeline.bat AKM` (one class). It shows a progress bar per stage, resumes where it left off, and
+   keeps the full logs in `pipeline\work\layout.log` and `render.log`. Edit `RENDER_ROOT` and `BLENDER_EXE`
+   at the top of the batch file if the render folder or Blender live elsewhere. Options go after `--`
+   (`pipeline.bat -- --fresh` re-renders everything; `pipeline.bat -- --skip-convert` only renders;
+   a second `--` passes Blender options, e.g. `pipeline.bat -- -- --engine CYCLES --gpu`).
+   The two stages can also be run on their own:
+   - `python pipeline/layout.py --render F:/PureZ/PureZ-render [--only AKM]` makes `pipeline/work/<category>/<Class>/`
+     with `model.glb` (for Blender), `web.glb` (what the wiki serves: the single most detailed LOD, lossless WebP
+     textures stored once each, quantised normals and indices) and `item.json`. `--web-tex 1024` or `--web-lossy 85`
+     shrink the web model further at some loss of detail.
+   - `pipeline\render.bat [AKM]` or `pipeline\render.bat -- --check` runs Blender alone (see blender_render.py).
+3. Commit `media/`. Pages show the render and 3D model automatically.
 
-Useful options after `render.bat --`: `--only AKM` (repeatable, substring), `--engine CYCLES --gpu` for the slower
-path-traced look (EEVEE is the default), `--samples 32` for drafts, `--size 1600x1200`, `--format png`,
-`--limit 20`, `--shard-index 0 --shard-count 4` to run several Blenders at once, `--no-glb`.
+Renders are cropped to the model plus a 4% margin out of a 2400x1800 frame (`--size`, `--no-crop`), WebP
+quality 92 (`--quality 100` for lossless, `--format png`), EEVEE by default (`--engine CYCLES --gpu` for the
+slower path-traced look), exposure -0.3 with the AgX base look (`--exposure`). Progress and failures: console,
+`pipeline\work\render.log`, and `media\renders\report.json` with tracebacks.
 
-If nothing renders, check in this order: `pipeline\work` has `<category>\<Class>\model.glb` folders (layout.py
-step), `render.bat -- --check` reports the models, and `pipeline\work\render.log` names the failing class.
+If nothing renders, check in this order: `pipeline\work` has `<category>\<Class>\model.glb` folders (convert
+stage), `render.bat -- --check` reports the models, and `pipeline\work\render.log` names the failing class.
 
 To get editable MLOD files (for Object Builder or the Blender Arma toolbox) run the decoder on its own:
 `python pipeline/odol.py model.p3d` writes `model.mlod.p3d`; `python pipeline/odol.py --batch F:/PureZ/PureZ-render`
-converts every ODOL file in place and keeps the original as `.odol`. Only the visual LODs are written
-unless `--all-lods` is given. The batch run prints one line per file with its size, elapsed time and the
+converts every ODOL file in place and keeps the original as `.odol`. Only the most detailed visual LOD is
+written (`--lods visual` for every graphical LOD, `--lods all` for everything), which halves the time and the file size. The batch run prints one line per file with its size, elapsed time and the
 time left, runs at below-normal priority, and skips files over 160 MB and single LODs over 64 MB
 (`--max-size` / `--max-lod` to change). `--limit 20` does a trial run. Results go to `odol.log` in the
 folder, and converted files are skipped on a rerun. `pip install python-lzo` makes decoding several

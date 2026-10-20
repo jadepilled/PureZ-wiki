@@ -2,7 +2,8 @@
 
     python pipeline/layout.py --render <trimmed render folder> [--all] [--only AKM]
 
-Creates pipeline/work/<category>/<Class>/model.glb + item.json for every class the wiki has a
+Creates pipeline/work/<category>/<Class>/model.glb (for Blender) + web.glb (served on the wiki, the same
+single LOD with lossless WebP textures stored once each) + item.json for every class the wiki has a
 page for (every item in a mission's economy in data/missions, plus hand-written pages with a
 `class`; with --all, every public config class that has a model), applying the class's
 hiddenSelectionsTextures so colour variants render correctly. Then run blender_render.py.
@@ -156,6 +157,9 @@ def main():
     ap.add_argument("--all", action="store_true", help="every public config class with a model")
     ap.add_argument("--only")
     ap.add_argument("--slots", default=",".join(DEFAULT_SLOTS), help="attachment slots merged into weapon renders (comma list, '' for none)")
+    ap.add_argument("--web-tex", type=int, default=0, help="longest texture side in the web GLB (0 = as in the game files)")
+    ap.add_argument("--web-lossy", type=int, default=0, help="WebP quality for the web GLB textures (0 = lossless)")
+    ap.add_argument("--no-web", action="store_true", help="skip the web GLB")
     ap.add_argument("--proxy-frame", default="triangle", choices=["identity", "triangle"],
                     help="rotate attachments by the proxy's transform (the default; it comes straight from the ODOL file), or only move them to its origin")
     a = ap.parse_args()
@@ -196,7 +200,7 @@ def main():
         src = files.find(model) or files.find(model + ".p3d")
         if not src:
             stats["missing file"] += 1
-            print(f"missing  {cls}: {model}")
+            print(f"missing  {cls}: {model}", flush=True)
             continue
         out_dir = os.path.join(a.work, it["category"], cls)
         hidden = dict(zip([s.lower() for s in c.get("hiddenSelections") or []], c.get("hiddenSelectionsTextures") or []))
@@ -221,18 +225,23 @@ def main():
                                   "hidden": dict(zip([x.lower() for x in ac.get("hiddenSelections") or []], ac.get("hiddenSelectionsTextures") or [])),
                                   "mats": dict(zip([x.lower() for x in ac.get("hiddenSelections") or []], ac.get("hiddenSelectionsMaterials") or []))})
                     fitted.append({k: att[k] for k in ("slot", "class", "proxy", "chance")} | {"origin": [round(x, 4) for x in att["origin"]]})
-            info = p3d.export(lod, os.path.join(out_dir, "model.glb"), files, hidden, mats, parts)
+            info = p3d.export(lod, os.path.join(out_dir, "model.glb"), files, hidden, mats, parts, tex={"png_level": 1})
+            if not a.no_web:
+                p3d.export(lod, os.path.join(out_dir, "web.glb"), files, hidden, mats, parts,
+                           tex={"fmt": "webp", "lossless": not a.web_lossy, "quality": a.web_lossy or 90, "max_size": a.web_tex})
+                info["web_bytes"] = os.path.getsize(os.path.join(out_dir, "web.glb"))
             with open(os.path.join(out_dir, "item.json"), "w", encoding="utf-8") as f:
                 json.dump({"class": cls, "category": it["category"], "model": model, "hidden": hidden, "fitted": fitted, **info}, f, indent=1)
             stats["converted"] += 1
             extra = f" + {', '.join(x['class'] for x in fitted)}" if fitted else ""
-            print(f"ok       {it['category']}/{cls} ({info['faces']} faces){extra}")
+            size = f", web {info['web_bytes'] / 1e6:.1f} MB" if info.get("web_bytes") else ""
+            print(f"ok       {it['category']}/{cls} ({info['faces']} faces{size}){extra}", flush=True)
         except NotImplementedError as e:
             stats["odol"] += 1
-            print(f"odol     {cls}: {e}")
+            print(f"odol     {cls}: {e}", flush=True)
         except Exception as e:
             stats["failed"] += 1
-            print(f"failed   {cls}: {e}")
+            print(f"failed   {cls}: {e}", flush=True)
     print(stats)
     print(f"work tree: {a.work}  (next: pipeline\\render.bat, or blender -b --factory-startup -P pipeline/blender_render.py -- --work {a.work} --out media)")
 

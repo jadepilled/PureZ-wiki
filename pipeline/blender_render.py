@@ -3,12 +3,13 @@
     blender -b --factory-startup -P pipeline/blender_render.py -- --work pipeline/work --out media [--resume]
 
 Reads work/<category>/<Class>/model.glb (made by layout.py) and writes
-media/renders/<category>/<Class>.webp and media/models/<Class>.glb, plus work/render.log and
+media/renders/<category>/<Class>.webp (cropped to the model with a margin) and media/models/<Class>.glb
+(the web.glb made by layout.py; --blender-glb re-exports from Blender instead), plus work/render.log and
 media/renders/report.json. Resumable: --resume skips classes that already have an image.
 
 Options: --only <text> (substring, repeatable), --limit N, --shard-index I --shard-count N,
---size 1600x1200, --format webp|png, --engine EEVEE|CYCLES (EEVEE default), --samples N, --gpu,
---no-glb, --check (only verify Blender and the work tree, render nothing).
+--size 2400x1800 (the frame before cropping), --quality 92, --format webp|png, --engine EEVEE|CYCLES
+(EEVEE default), --samples N, --gpu, --exposure -0.3, --no-glb, --check (verify Blender and the work tree only).
 """
 import argparse, json, os, sys, time, traceback
 
@@ -51,8 +52,12 @@ def args():
     ap.add_argument("--shard-index", type=int, default=0)
     ap.add_argument("--shard-count", type=int, default=1)
     ap.add_argument("--resume", action="store_true", help="skip classes that already have an image")
-    ap.add_argument("--size", default="1600x1200")
+    ap.add_argument("--size", default="2400x1800")
+    ap.add_argument("--quality", type=int, default=92, help="WebP quality (100 = lossless)")
     ap.add_argument("--format", default="webp", choices=["webp", "png"])
+    ap.add_argument("--exposure", type=float, default=-0.3)
+    ap.add_argument("--no-crop", action="store_true", help="keep the full frame instead of cropping to the model")
+    ap.add_argument("--blender-glb", action="store_true", help="export media/models/<Class>.glb from Blender instead of copying web.glb")
     ap.add_argument("--samples", type=int, default=0, help="render samples (default 64 EEVEE, 96 Cycles)")
     ap.add_argument("--engine", default="EEVEE", choices=["CYCLES", "EEVEE"])
     ap.add_argument("--gpu", action="store_true")
@@ -92,11 +97,16 @@ def setup_render(a):
     sc.render.image_settings.file_format = a.format.upper()
     sc.render.image_settings.color_mode = "RGBA"
     if a.format == "webp":
-        sc.render.image_settings.quality = 90
+        sc.render.image_settings.quality = a.quality
+        if a.quality >= 100:
+            try:
+                sc.render.image_settings.color_management = "FOLLOW_SCENE"
+            except Exception:
+                pass
     else:
         sc.render.image_settings.compression = 30
     sc.render.use_file_extension = False
-    for key, val in (("view_transform", "AgX"), ("look", "AgX - Medium High Contrast")):
+    for key, val in (("view_transform", "AgX"), ("look", "AgX - Base Contrast"), ("exposure", a.exposure)):
         try:
             setattr(sc.view_settings, key, val)
         except Exception:
@@ -137,7 +147,7 @@ def setup_render(a):
         out = next((n for n in nt.nodes if n.type == "OUTPUT_WORLD"), None) or nt.nodes.new("ShaderNodeOutputWorld")
         nt.links.new(bg.outputs[0], out.inputs[0])
     if bg:
-        bg.inputs[0].default_value = (0.045, 0.045, 0.05, 1)  # soft dark fill for reflections; hidden by film transparency
+        bg.inputs[0].default_value = (0.02, 0.02, 0.024, 1)  # faint dark fill for reflections; hidden by film transparency
         bg.inputs[1].default_value = 1.0
     else:
         world.color = (0.045, 0.045, 0.05)
@@ -212,9 +222,24 @@ def frame(objs, category, aspect):
     # three-point studio lighting; wattage scales with the square of the model size so every item is lit alike
     r = radius * 4
     side = Vector((direction.y, -direction.x, 0)).normalized()
-    add_light("key", "AREA", center + (direction + side * 0.9 + Vector((0, 0, 0.9))).normalized() * r, center, 900 * radius ** 2, radius * 2.5)
-    add_light("fill", "AREA", center + (direction - side * 1.1 + Vector((0, 0, 0.2))).normalized() * r, center, 260 * radius ** 2, radius * 3)
-    add_light("rim", "AREA", center + (-direction + Vector((0, 0, 0.8))).normalized() * r, center, 700 * radius ** 2, radius * 2)
+    add_light("key", "AREA", center + (direction + side * 0.9 + Vector((0, 0, 0.9))).normalized() * r, center, 420 * radius ** 2, radius * 3)
+    add_light("fill", "AREA", center + (direction - side * 1.1 + Vector((0, 0, 0.2))).normalized() * r, center, 150 * radius ** 2, radius * 3.5)
+    add_light("rim", "AREA", center + (-direction + Vector((0, 0, 0.8))).normalized() * r, center, 320 * radius ** 2, radius * 2.5)
+    return cam, corners
+
+
+def crop_to_model(cam, corners, margin=0.04):
+    """Render border around the model's projected box (plus a margin) and crop the output to it:
+    fewer empty pixels, no change to the pixels that matter."""
+    from bpy_extras.object_utils import world_to_camera_view
+    sc = bpy.context.scene
+    pts = [world_to_camera_view(sc, cam, p) for p in corners]
+    xs, ys = [p.x for p in pts], [p.y for p in pts]
+    lo_x, hi_x = max(0.0, min(xs) - margin), min(1.0, max(xs) + margin)
+    lo_y, hi_y = max(0.0, min(ys) - margin), min(1.0, max(ys) + margin)
+    sc.render.use_border = sc.render.use_crop_to_border = True
+    sc.render.border_min_x, sc.render.border_max_x = lo_x, hi_x
+    sc.render.border_min_y, sc.render.border_max_y = lo_y, hi_y
 
 
 # ---------------------------------------------------------------- one item
@@ -232,7 +257,9 @@ def render_item(item_dir, category, cls, a):
             for poly in o.data.polygons:
                 poly.use_smooth = True
     sc = bpy.context.scene
-    frame(objs, category, sc.render.resolution_x / sc.render.resolution_y)
+    cam, corners = frame(objs, category, sc.render.resolution_x / sc.render.resolution_y)
+    if not a.no_crop:
+        crop_to_model(cam, corners)
     img_out = os.path.join(a.out, "renders", category, f"{cls}.{a.format}")
     os.makedirs(os.path.dirname(img_out), exist_ok=True)
     sc.render.filepath = img_out
@@ -242,6 +269,11 @@ def render_item(item_dir, category, cls, a):
     if not a.no_glb:
         glb_out = os.path.join(a.out, "models", f"{cls}.glb")
         os.makedirs(os.path.dirname(glb_out), exist_ok=True)
+        web = os.path.join(item_dir, "web.glb")
+        if os.path.exists(web) and not a.blender_glb:
+            import shutil
+            shutil.copyfile(web, glb_out)
+            return img_out
         for o in bpy.context.scene.objects:
             o.select_set(o.type == "MESH")
         kw = dict(filepath=glb_out, export_format="GLB", use_selection=True)
@@ -295,6 +327,7 @@ def main():
         img = os.path.join(a.out, "renders", category, f"{cls}.{a.format}")
         if a.resume and os.path.exists(img) and os.path.getsize(img) > 1024:
             skipped += 1
+            log(f"[{n}/{len(items)}] skipped {category}/{cls}")
             continue
         t0 = time.time()
         try:

@@ -288,7 +288,8 @@ def read_animations(r, nlods):
 
 
 def read_odol(data, which="visual", max_lod_bytes=MAX_LOD_MB << 20, log=None):
-    """Parse an ODOL file. which: "visual" (resolution below 1000), "all", or a set of resolutions."""
+    """Parse an ODOL file. which: "best" (the highest-detail visual LOD only), "visual" (every resolution
+    below 1000), "all", or a set of resolutions."""
     r = Reader(data)
     if r.raw(4) != b"ODOL":
         raise ValueError("not an ODOL file")
@@ -329,9 +330,12 @@ def read_odol(data, which="visual", max_lod_bytes=MAX_LOD_MB << 20, log=None):
             r.raw(25)                          # face count, colour, special, or-hints, flag, vertices, area
 
     lods, skipped = [], []
-    for i in range(nlods):
+    order = list(range(nlods))
+    if which == "best":   # lowest resolution number = most detail; try the next one if it holds no faces
+        order = sorted((i for i in order if resolutions[i] < VISUAL_LOD_MAX), key=lambda i: resolutions[i])
+    for i in order:
         res = resolutions[i]
-        wanted = which == "all" or (which == "visual" and res < VISUAL_LOD_MAX) or (isinstance(which, set) and res in which)
+        wanted = which in ("all", "best") or (which == "visual" and res < VISUAL_LOD_MAX) or (isinstance(which, set) and res in which)
         if not wanted:
             continue
         if ends[i] - starts[i] > max_lod_bytes:
@@ -343,6 +347,8 @@ def read_odol(data, which="visual", max_lod_bytes=MAX_LOD_MB << 20, log=None):
             raise ValueError(f"version {version}, LOD {res:g}: {e}") from e
         lod.resolution = res
         lods.append(lod)
+        if which == "best" and lod.nfaces:
+            break
     if skipped and log:
         log(f"  skipped {len(skipped)} LOD(s) over {max_lod_bytes >> 20} MB: {', '.join(f'{x:g}' for x in skipped)}")
     return {"version": version, "skeleton": skeleton, "bones": bones, "bbox": (bmin, bmax), "lods": lods, "skipped": skipped}
@@ -620,9 +626,11 @@ def write_mlod(model, path, lods=None):
 
 
 def convert(src, dst, keep_all=False, max_lod_bytes=MAX_LOD_MB << 20, log=None):
+    """keep_all: True/"all" keeps every LOD, "visual" every graphical LOD, False/"best" only the most detailed one."""
+    which = keep_all if isinstance(keep_all, str) else ("all" if keep_all else "best")
     with open(src, "rb") as f:
         data = f.read()
-    model = read_odol(data, "all" if keep_all else "visual", max_lod_bytes, log)
+    model = read_odol(data, which, max_lod_bytes, log)
     del data
     write_mlod(model, dst)
     return model
@@ -722,7 +730,7 @@ def batch(a):
                 eta = (len(todo) - done - len(failed)) / rate / 60 if rate else 0
                 print(f"[{started}/{len(todo)}] {os.path.relpath(path, a.src)} ({os.path.getsize(path) / 1048576:.1f} MB)"
                       f"  {elapsed / 60:.0f} min elapsed, about {eta:.0f} min left", flush=True)
-                fut = pool.submit(_convert_job, path, a.all_lods, a.max_lod << 20)
+                fut = pool.submit(_convert_job, path, ("all" if a.all_lods else a.lods), a.max_lod << 20)
                 pending[fut] = (path, time.time())
             donefs, _ = cf.wait(list(pending), timeout=1, return_when=cf.FIRST_COMPLETED)
             for fut in donefs:
@@ -772,7 +780,9 @@ def main():
     ap.add_argument("src", help="an ODOL .p3d, or a folder with --batch")
     ap.add_argument("dst", nargs="?")
     ap.add_argument("--batch", action="store_true", help="convert every ODOL .p3d under src in place, keeping the original as .odol")
-    ap.add_argument("--all-lods", action="store_true", help="keep geometry, memory and other non-visual LODs too")
+    ap.add_argument("--lods", default="best", choices=["best", "visual", "all"],
+                    help="LODs written: only the most detailed visual LOD (default, what renders need), every visual LOD, or everything")
+    ap.add_argument("--all-lods", action="store_true", help="same as --lods all")
     ap.add_argument("--max-size", type=int, default=MAX_FILE_MB, help=f"skip files bigger than this many MB (default {MAX_FILE_MB})")
     ap.add_argument("--max-lod", type=int, default=MAX_LOD_MB, help=f"skip a single LOD bigger than this many MB (default {MAX_LOD_MB})")
     ap.add_argument("--sleep", type=float, default=0.05, help="seconds to pause between files (default 0.05)")
@@ -787,7 +797,7 @@ def main():
         batch(a)
     else:
         dst = a.dst or a.src[:-4] + ".mlod.p3d"
-        model = convert(a.src, dst, a.all_lods, a.max_lod << 20, log=print)
+        model = convert(a.src, dst, ("all" if a.all_lods else a.lods), a.max_lod << 20, log=print)
         for l in model["lods"]:
             print(f"lod {l.resolution:g}: {l.npoints} points, {l.nfaces} faces, {len(l.proxies)} proxies, "
                   f"{len(l.selections)} selections, textures {[t for t in l.textures if t]}")

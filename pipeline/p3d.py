@@ -107,7 +107,7 @@ def read_p3d(path):
         return read_mlod(data)
     if sig == b"ODOL":
         import odol
-        model = odol.read_odol(data, "visual")
+        model = odol.read_odol(data, "best")   # only the most detailed visual LOD is ever rendered
         return read_mlod(odol.mlod_bytes(model))
     raise ValueError(f"unknown P3D signature {sig!r}")
 
@@ -205,10 +205,19 @@ def rvmat_textures(path):
     return roles
 
 
-def png_bytes(img):
+def image_bytes(img, fmt="png", lossless=True, quality=90, png_level=6):
+    """Encode a texture for a GLB. png: lossless, png_level 1 is fast and big, 9 small and slow.
+    webp: lossless by default (30-50% smaller than PNG), or lossy at `quality` when lossless is False."""
     b = io.BytesIO()
-    img.save(b, "PNG", optimize=True)
+    if fmt == "webp":
+        img.save(b, "WEBP", lossless=lossless, quality=quality if not lossless else 100, method=4)
+    else:
+        img.save(b, "PNG", compress_level=png_level, optimize=png_level >= 9)
     return b.getvalue()
+
+
+def png_bytes(img):
+    return image_bytes(img, "png")
 
 
 def load_texture(files, game_path, cache):
@@ -245,33 +254,79 @@ class Glb:
                      "scenes": [{"nodes": [0]}], "nodes": [{"mesh": 0, "name": "model"}],
                      "meshes": [{"primitives": []}], "accessors": [], "bufferViews": [],
                      "materials": [], "textures": [], "images": [], "samplers": [{"magFilter": 9729, "minFilter": 9987}]}
+        self.tex = {"fmt": "png", "lossless": True, "quality": 90, "max_size": 0, "png_level": 6}
+        self.quantize = True      # normals as int8 and UVs as uint16 (KHR_mesh_quantization), indices as uint16 when they fit
+        self._images = {}         # (image id, size) -> texture index, so a map shared by several materials is stored once
 
-    def view(self, data, target=None):
+    def extension(self, name, required=False):
+        for key in (["extensionsUsed", "extensionsRequired"] if required else ["extensionsUsed"]):
+            lst = self.gltf.setdefault(key, [])
+            if name not in lst:
+                lst.append(name)
+
+    def view(self, data, target=None, stride=None):
         while len(self.bin) % 4:
             self.bin.append(0)
         v = {"buffer": 0, "byteOffset": len(self.bin), "byteLength": len(data)}
         if target:
             v["target"] = target
+        if stride:
+            v["byteStride"] = stride
         self.bin += data
         self.gltf["bufferViews"].append(v)
         return len(self.gltf["bufferViews"]) - 1
 
     def accessor(self, values, kind, comp=5126, target=34962, minmax=False):
+        """comp: 5126 float, 5125 uint32, 5123 uint16, 5120 int8 normalized (VEC3, padded to 4 bytes)."""
         width = {"VEC3": 3, "VEC2": 2, "SCALAR": 1}[kind]
-        fmt = "<" + ("f" if comp == 5126 else "I") * len(values)
         flat = values
-        acc = {"bufferView": self.view(struct.pack(fmt, *flat), target), "componentType": comp,
-               "count": len(values) // width, "type": kind}
+        stride = None
+        if comp == 5120:
+            data = struct.pack("<" + "bbbx" * (len(flat) // 3), *(max(-127, min(127, round(v * 127))) for v in flat))
+            stride = 4
+        elif comp == 5123 and kind == "VEC2":
+            data = struct.pack("<" + "H" * len(flat), *(max(0, min(65535, round(v * 65535))) for v in flat))
+        else:
+            data = struct.pack("<" + {5126: "f", 5125: "I", 5123: "H"}[comp] * len(flat), *flat)
+        acc = {"bufferView": self.view(data, target, stride), "componentType": comp, "count": len(values) // width, "type": kind}
+        if comp in (5120, 5123) and kind != "SCALAR":
+            acc["normalized"] = True
+            self.extension("KHR_mesh_quantization", required=True)
         if minmax:
             cols = [flat[i::width] for i in range(width)]
             acc["min"], acc["max"] = [min(c) for c in cols], [max(c) for c in cols]
         self.gltf["accessors"].append(acc)
         return len(self.gltf["accessors"]) - 1
 
+    def normals(self, N):
+        return self.accessor(N, "VEC3", comp=5120 if self.quantize else 5126)
+
+    def uvs(self, T):
+        fits = self.quantize and T and all(0.0 <= v <= 1.0 for v in T)
+        return self.accessor(T, "VEC2", comp=5123 if fits else 5126)
+
+    def indices(self, idx):
+        small = self.quantize and (max(idx) if idx else 0) < 65535
+        return self.accessor(idx, "SCALAR", comp=5123 if small else 5125, target=34963)
+
     def image(self, img):
-        self.gltf["images"].append({"bufferView": self.view(png_bytes(img)), "mimeType": "image/png"})
-        self.gltf["textures"].append({"source": len(self.gltf["images"]) - 1, "sampler": 0})
-        return len(self.gltf["textures"]) - 1
+        t = self.tex
+        key = (id(img), t["max_size"])
+        if key in self._images:
+            return self._images[key]
+        if t["max_size"] and max(img.size) > t["max_size"]:
+            f = t["max_size"] / max(img.size)
+            img = img.resize((max(1, round(img.width * f)), max(1, round(img.height * f))), Image.LANCZOS)
+        data = image_bytes(img, t["fmt"], t["lossless"], t["quality"], t["png_level"])
+        self.gltf["images"].append({"bufferView": self.view(data), "mimeType": f"image/{t['fmt']}"})
+        src = len(self.gltf["images"]) - 1
+        if t["fmt"] == "webp":
+            self.extension("EXT_texture_webp", required=True)
+            self.gltf["textures"].append({"sampler": 0, "extensions": {"EXT_texture_webp": {"source": src}}})
+        else:
+            self.gltf["textures"].append({"source": src, "sampler": 0})
+        self._images[key] = len(self.gltf["textures"]) - 1
+        return self._images[key]
 
     def save(self, path):
         g = self.gltf
@@ -307,10 +362,11 @@ def norm(v):
     return (v[0] / l, v[1] / l, v[2] / l)
 
 
-def export(lod, out, files, hidden=None, materials_override=None, parts=None):
+def export(lod, out, files, hidden=None, materials_override=None, parts=None, tex=None, quantize=True):
     """Write a GLB. hidden: {selection: texture} from hiddenSelectionsTextures.
     parts: attachments to merge in, [{"lod", "hidden", "mats", "origin", "frame", "name"}], each placed
-    at its proxy's origin (and frame, when given) in the main model's space."""
+    at its proxy's origin (and frame, when given) in the main model's space.
+    tex: texture encoding, {"fmt": "png"|"webp", "lossless": True, "quality": 90, "max_size": 0, "png_level": 6}."""
     items = [{"lod": lod, "hidden": hidden, "mats": materials_override, "origin": (0.0, 0.0, 0.0), "frame": None, "name": "model"}]
     items += parts or []
     groups, total_faces = {}, 0
@@ -349,6 +405,8 @@ def export(lod, out, files, hidden=None, materials_override=None, parts=None):
             total_faces += 1
 
     glb, cache = Glb(), {}
+    glb.tex.update(tex or {})
+    glb.quantize = quantize
     for (tex, mat), faces in groups.items():
         P, N, T, idx, seen = [], [], [], [], {}
         for f, pts, nrm, flip_normals, has_normals in faces:
@@ -373,8 +431,8 @@ def export(lod, out, files, hidden=None, materials_override=None, parts=None):
                         T += (u, vv)
                     idx.append(seen[key])
         prim = {"attributes": {"POSITION": glb.accessor(P, "VEC3", minmax=True),
-                               "NORMAL": glb.accessor(N, "VEC3"), "TEXCOORD_0": glb.accessor(T, "VEC2")},
-                "indices": glb.accessor(idx, "SCALAR", comp=5125, target=34963)}
+                               "NORMAL": glb.normals(N), "TEXCOORD_0": glb.uvs(T)},
+                "indices": glb.indices(idx)}
 
         material = {"name": os.path.basename(tex or "untextured"), "doubleSided": True,
                     "pbrMetallicRoughness": {"metallicFactor": 0.0, "roughnessFactor": 0.75}}
