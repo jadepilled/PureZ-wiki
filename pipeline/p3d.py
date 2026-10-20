@@ -107,7 +107,7 @@ def read_p3d(path):
         return read_mlod(data)
     if sig == b"ODOL":
         import odol
-        model = odol.read_odol(data)
+        model = odol.read_odol(data, "visual")
         return read_mlod(odol.mlod_bytes(model))
     raise ValueError(f"unknown P3D signature {sig!r}")
 

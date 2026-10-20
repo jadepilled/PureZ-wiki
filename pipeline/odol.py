@@ -9,9 +9,11 @@ proxies (with their full transform). Vertices that ODOL split per normal/UV are 
 points by position, so MLOD selections and the Blender import behave as if the model had never been
 binarised. Arrays over 1023 bytes are LZO-compressed (lzo1x).
 """
-import argparse, math, os, struct, sys
+import argparse, array, math, os, struct, sys, time
 
 VISUAL_LOD_MAX = 1000.0
+MAX_FILE_MB = 48          # --batch skips bigger files unless --max-size raises this
+MAX_LOD_MB = 24           # a single LOD bigger than this is skipped
 
 
 class Reader:
@@ -90,7 +92,7 @@ def lzo1x_decompress(src, ip, expected):
                 if t < 16:                           # short match after a literal run
                     pos = len(out) - (1 + 0x800) - (t >> 2) - (src[ip] << 2); ip += 1
                     for _ in range(3):
-                        out.append(out[pos]); pos += 1
+                        out.append(out[pos]); pos += 1   # three bytes, may overlap
                     t = src[ip - 2] & 3
                     if t == 0:
                         continue
@@ -130,8 +132,10 @@ def lzo1x_decompress(src, ip, expected):
                 length = 2
             if pos < 0:
                 raise ValueError("LZO match before the start of the block")
-            for _ in range(length):
-                out.append(out[pos]); pos += 1
+            while length > 0:                        # overlapping matches repeat what was just written
+                chunk = out[pos:pos + min(length, len(out) - pos)]
+                out += chunk
+                pos += len(chunk); length -= len(chunk)
             t = src[ip - 2] & 3
             if t == 0:
                 state = 0
@@ -142,16 +146,40 @@ def lzo1x_decompress(src, ip, expected):
 
 
 class Lod:
+    """One LOD in compact arrays (flat floats and ints) so large models stay within memory."""
+
     def __init__(self):
         self.resolution = 0.0
         self.proxies = []           # dicts: name, x, y, z, n (triplets), id, selection, bone, section
         self.textures, self.materials = [], []
-        self.faces = []             # [vertex indices]
+        self.face_n = array.array("B")      # vertices per face (3 or 4)
+        self.face_v = array.array("I")      # vertex indices, flat
+        self.face_tex = array.array("h")    # texture index per face (-1 none)
+        self.face_mat = array.array("h")    # material index per face (-1 none)
         self.sections = []          # dicts: start, end (byte offsets into face data), texture, material
-        self.selections = {}        # name -> {faces: [..], vertices: [..]}
+        self.selections = {}        # name -> {faces: array, vertices: array}
         self.properties = {}
-        self.points, self.normals, self.uvs = [], [], []
-        self.face_tex, self.face_mat = [], []   # per face, from sections
+        self.points = array.array("f")      # x y z per vertex
+        self.normals = array.array("f")
+        self.uvs = array.array("f")         # u v per vertex
+
+    @property
+    def npoints(self):
+        return len(self.points) // 3
+
+    @property
+    def nfaces(self):
+        return len(self.face_n)
+
+    def faces(self):
+        """Yield (first index into face_v, count) per face."""
+        off = 0
+        for n in self.face_n:
+            yield off, n
+            off += n
+
+    def point(self, i):
+        return tuple(self.points[3 * i:3 * i + 3])
 
 
 def read_material(r):
@@ -202,7 +230,8 @@ def read_animations(r, nlods):
     return anims
 
 
-def read_odol(data):
+def read_odol(data, which="visual", max_lod_bytes=MAX_LOD_MB << 20, log=None):
+    """Parse an ODOL file. which: "visual" (resolution below 1000), "all", or a set of resolutions."""
     r = Reader(data)
     if r.raw(4) != b"ODOL":
         raise ValueError("not an ODOL file")
@@ -242,12 +271,21 @@ def read_odol(data):
         if not permanent[i]:
             r.raw(25)                          # face count, colour, special, or-hints, flag, vertices, area
 
-    lods = []
+    lods, skipped = [], []
     for i in range(nlods):
+        res = resolutions[i]
+        wanted = which == "all" or (which == "visual" and res < VISUAL_LOD_MAX) or (isinstance(which, set) and res in which)
+        if not wanted:
+            continue
+        if ends[i] - starts[i] > max_lod_bytes:
+            skipped.append(res)
+            continue
         lod = read_lod(Reader(data, starts[i]), ends[i])
-        lod.resolution = resolutions[i]
+        lod.resolution = res
         lods.append(lod)
-    return {"version": version, "skeleton": skeleton, "bones": bones, "bbox": (bmin, bmax), "lods": lods}
+    if skipped and log:
+        log(f"  skipped {len(skipped)} LOD(s) over {max_lod_bytes >> 20} MB: {', '.join(f'{x:g}' for x in skipped)}")
+    return {"version": version, "skeleton": skeleton, "bones": bones, "bbox": (bmin, bmax), "lods": lods, "skipped": skipped}
 
 
 def read_lod(r, end):
@@ -274,12 +312,14 @@ def read_lod(r, end):
     r.u16()
     face_start = r.p
     # vertex indices are 16-bit unless the LOD has more than 65535 vertices (then 32-bit)
-    isz = 2 if npoints <= 0xFFFF else 4
-    face_offsets = []
+    isz, ich = (2, "H") if npoints <= 0xFFFF else (4, "I")
+    face_offsets = array.array("I")
+    d = r.d
     for _ in range(nfaces):
         face_offsets.append(r.p - face_start)
-        k = r.u8()
-        lod.faces.append(list(struct.unpack_from(f"<{k}{'H' if isz == 2 else 'I'}", r.d, r.p)))
+        k = d[r.p]; r.p += 1
+        lod.face_n.append(k)
+        lod.face_v.extend(struct.unpack_from(f"<{k}{ich}", d, r.p))
         r.p += k * isz
     if r.p - face_start != alloc and r.p - face_start + nfaces != alloc:
         raise ValueError(f"face table size {r.p - face_start} != allocation {alloc}")
@@ -301,14 +341,14 @@ def read_lod(r, end):
     for _ in range(r.u32()):                   # named selections
         name = r.asciiz()
         nf = r.u32()
-        faces = list(struct.unpack(f"<{nf}{fch}", r.compressed(nf, fsz))) if nf else []
+        faces = array.array("I", struct.unpack(f"<{nf}{fch}", r.compressed(nf, fsz))) if nf else array.array("I")
         r.u32()
         r.u8()
         ns = r.u32()
         if ns:
             r.compressed(ns, 4)
         nv = r.u32()
-        verts = list(struct.unpack(f"<{nv}{vch}", r.compressed(nv, vsz))) if nv else []
+        verts = array.array("I", struct.unpack(f"<{nv}{vch}", r.compressed(nv, vsz))) if nv else array.array("I")
         nw = r.u32()
         weights = r.compressed(nw, 1) if nw else b""
         lod.selections[name] = {"faces": faces, "vertices": verts, "weights": weights}
@@ -326,33 +366,43 @@ def read_lod(r, end):
     for _ in range(r.u32() - 1):               # further UV sets
         read_uvs(r, r.f32(4))
     n = r.u32()
-    lod.points = list(struct.iter_unpack("<3f", r.compressed(n, 12)))
+    lod.points = array.array("f")
+    lod.points.frombytes(r.compressed(n, 12))
     n = r.u32()
-    packed = r.condensed(n, 4)
-    lod.normals = [unpack_normal(v) for (v,) in struct.iter_unpack("<I", packed)]
+    packed = array.array("I")
+    packed.frombytes(r.condensed(n, 4))
+    lod.normals = array.array("f")
+    for v in packed:
+        lod.normals.extend(unpack_normal(v))
     # tangents, bone weights and the rest of the vertex table are not needed
-    if len(lod.points) != npoints:
+    if lod.npoints != npoints:
         raise ValueError("point count mismatch")
 
     # texture and material per face from the sections (byte ranges of the face table)
-    lod.face_tex = [""] * nfaces
-    lod.face_mat = [""] * nfaces
-    for s in lod.sections:
-        tex = lod.textures[s["texture"]] if 0 <= s["texture"] < len(lod.textures) else ""
-        mat = lod.materials[s["material"]]["path"] if 0 <= s["material"] < len(lod.materials) else ""
-        for i, off in enumerate(face_offsets):
-            if s["start"] <= off < s["end"]:
-                lod.face_tex[i], lod.face_mat[i] = tex, mat
+    lod.face_tex = array.array("h", [-1]) * nfaces
+    lod.face_mat = array.array("h", [-1]) * nfaces
+    secs = sorted(lod.sections, key=lambda x: x["start"])
+    si = 0
+    for i, off in enumerate(face_offsets):
+        while si < len(secs) and off >= secs[si]["end"]:
+            si += 1
+        if si < len(secs) and secs[si]["start"] <= off:
+            t, m = secs[si]["texture"], secs[si]["material"]
+            lod.face_tex[i] = t if 0 <= t < len(lod.textures) else -1
+            lod.face_mat[i] = m if 0 <= m < len(lod.materials) else -1
     return lod
 
 
 def read_uvs(r, scale):
     n = r.u32()
-    data = r.condensed(n, 4)
+    raw = array.array("h")
+    raw.frombytes(r.condensed(n, 4))
     u0, v0, u1, v1 = scale
-    out = []
-    for (u, v) in struct.iter_unpack("<hh", data):
-        out.append(((u + 32767) / 65534 * (u1 - u0) + u0, (v + 32767) / 65534 * (v1 - v0) + v0))
+    su, sv = (u1 - u0) / 65534, (v1 - v0) / 65534
+    out = array.array("f", [0.0]) * (2 * n)
+    for i in range(n):
+        out[2 * i] = (raw[2 * i] + 32767) * su + u0
+        out[2 * i + 1] = (raw[2 * i + 1] + 32767) * sv + v0
     return out
 
 
@@ -372,88 +422,188 @@ def proxy_triangle(p):
     return [tuple(o), tuple(o[k] + 0.1 * p["z"][k] for k in range(3)), tuple(o[k] + 0.05 * p["y"][k] for k in range(3))]
 
 
-def mlod_bytes(model, lods=None):
-    out = bytearray(b"MLOD" + struct.pack("<II", 257, 0))
+def mlod_chunks(model, lods=None):
+    """Yield the MLOD file as chunks, one LOD at a time, so a big model never sits in memory twice."""
     chosen = [l for l in model["lods"] if lods is None or l.resolution in lods]
-    struct.pack_into("<I", out, 8, len(chosen))
+    yield b"MLOD" + struct.pack("<II", 257, len(chosen))
     for lod in chosen:
         # ODOL splits a point per normal/UV; weld them back by position so faces share vertices
-        weld, points = {}, []
-        remap = []
-        for pt in lod.points:
-            key = tuple(round(c, 6) for c in pt)
-            if key not in weld:
-                weld[key] = len(points)
-                points.append(pt)
-            remap.append(weld[key])
-        normals = list(lod.normals) or [(0.0, 1.0, 0.0)]
-        faces = []
-        for i, idx in enumerate(lod.faces):
-            verts = [(remap[vi], vi if vi < len(normals) else 0,
-                      lod.uvs[vi][0] if vi < len(lod.uvs) else 0.0, lod.uvs[vi][1] if vi < len(lod.uvs) else 0.0) for vi in idx]
-            faces.append([verts, lod.face_tex[i], lod.face_mat[i]])
+        weld, remap, points = {}, array.array("I"), array.array("f")
+        P = lod.points
+        for i in range(lod.npoints):
+            key = (round(P[3 * i], 6), round(P[3 * i + 1], 6), round(P[3 * i + 2], 6))
+            j = weld.get(key)
+            if j is None:
+                j = weld[key] = len(points) // 3
+                points.extend(P[3 * i:3 * i + 3])
+            remap.append(j)
+        del weld
+        normals = array.array("f", lod.normals) if len(lod.normals) else array.array("f", [0.0, 1.0, 0.0])
+        nnorm = len(normals) // 3
+        faces = []                          # (verts [(pt, nrm, u, v)], tex, mat)
+        U = lod.uvs
+        for off, n in lod.faces():
+            verts = []
+            for k in range(off, off + n):
+                vi = lod.face_v[k]
+                verts.append((remap[vi], vi if vi < nnorm else 0, U[2 * vi] if 2 * vi + 1 < len(U) else 0.0, U[2 * vi + 1] if 2 * vi + 1 < len(U) else 0.0))
+            faces.append([verts, lod.face_tex[len(faces)], lod.face_mat[len(faces)]])
         sel_faces = {name: set(sel["faces"]) for name, sel in lod.selections.items()}
         sel_points = {name: {remap[v] for v in sel["vertices"] if v < len(remap)} for name, sel in lod.selections.items()}
         # proxies: replace the stored placeholder triangle with one built from the proxy's transform
         names = list(lod.selections)
         for p in lod.proxies:
             name = names[p["selection"]] if p["selection"] < len(names) else f"proxy:{p['name']}.{p['id']:03d}"
-            tri = proxy_triangle(p)
-            base = len(points)
-            points += tri
-            normals.append((0.0, 1.0, 0.0))
-            ni = len(normals) - 1
+            base = len(points) // 3
+            for pt in proxy_triangle(p):
+                points.extend(pt)
+            normals.extend((0.0, 1.0, 0.0))
+            ni = len(normals) // 3 - 1
             verts = [(base, ni, 0.0, 0.0), (base + 1, ni, 0.0, 0.0), (base + 2, ni, 0.0, 0.0)]
             old = sorted(sel_faces.get(name, ()))
             if old:
-                faces[old[0]] = [verts, "", ""]
+                faces[old[0]] = [verts, -1, -1]
                 for extra in old[1:]:
-                    faces[extra] = [[], "", ""]          # dropped below
+                    faces[extra] = [[], -1, -1]          # dropped below
                 sel_faces[name] = {old[0]}
             else:
-                faces.append([verts, "", ""])
+                faces.append([verts, -1, -1])
                 sel_faces[name] = {len(faces) - 1}
             sel_points[name] = {base, base + 1, base + 2}
         keep = [i for i, f in enumerate(faces) if f[0]]
         renum = {old: new for new, old in enumerate(keep)}
         faces = [faces[i] for i in keep]
         sel_faces = {n: {renum[i] for i in fs if i in renum} for n, fs in sel_faces.items()}
+        npts = len(points) // 3
 
-        out += b"P3DM" + struct.pack("<IIIIII", 28, 256, len(points), len(normals), len(faces), 0)
-        for x, y, z in points:
-            out += struct.pack("<fffI", x, y, z, 0)
-        for x, y, z in normals:
-            out += struct.pack("<fff", x, y, z)
-        for verts, tex, mat in faces:
+        out = bytearray(b"P3DM" + struct.pack("<IIIIII", 28, 256, npts, nnorm + (len(normals) // 3 - nnorm), len(faces), 0))
+        for i in range(npts):
+            out += struct.pack("<fffI", points[3 * i], points[3 * i + 1], points[3 * i + 2], 0)
+        out += normals.tobytes()
+        yield bytes(out)
+        out = bytearray()
+        tex_names = [t.encode("latin1") for t in lod.textures]
+        mat_names = [m["path"].encode("latin1") for m in lod.materials]
+        for verts, ti, mi in faces:
             out += struct.pack("<I", len(verts))
             for k in range(4):
                 pi, ni, u, v = verts[k] if k < len(verts) else (0, 0, 0.0, 0.0)
                 out += struct.pack("<IIff", pi, ni, u, v)
-            out += struct.pack("<I", 0) + tex.encode("latin1") + b"\0" + mat.encode("latin1") + b"\0"
+            out += b"\0\0\0\0" + (tex_names[ti] if ti >= 0 else b"") + b"\0" + (mat_names[mi] if mi >= 0 else b"") + b"\0"
+            if len(out) > (4 << 20):
+                yield bytes(out)
+                out = bytearray()
         out += b"TAGG"
         for name in sel_faces:
-            body = bytes(1 if i in sel_points.get(name, ()) else 0 for i in range(len(points)))
-            body += bytes(1 if i in sel_faces[name] else 0 for i in range(len(faces)))
+            body = bytearray(npts + len(faces))
+            for i in sel_points.get(name, ()):
+                body[i] = 1
+            for i in sel_faces[name]:
+                body[npts + i] = 1
             out += b"\x01" + name.encode("latin1") + b"\0" + struct.pack("<I", len(body)) + body
         for k, v in lod.properties.items():
             body = k.encode("latin1")[:63].ljust(64, b"\0") + v.encode("latin1")[:63].ljust(64, b"\0")
             out += b"\x01#Property#\0" + struct.pack("<I", len(body)) + body
         out += b"\x01#EndOfFile#\0" + struct.pack("<I", 0)
         out += struct.pack("<f", lod.resolution)
-    return bytes(out)
+        yield bytes(out)
+
+
+def mlod_bytes(model, lods=None):
+    return b"".join(mlod_chunks(model, lods))
 
 
 def write_mlod(model, path, lods=None):
     with open(path, "wb") as f:
-        f.write(mlod_bytes(model, lods))
+        for chunk in mlod_chunks(model, lods):
+            f.write(chunk)
 
 
-def convert(src, dst, keep_all=False):
+def convert(src, dst, keep_all=False, max_lod_bytes=MAX_LOD_MB << 20, log=None):
     with open(src, "rb") as f:
         data = f.read()
-    model = read_odol(data)
-    write_mlod(model, dst, None if keep_all else {l.resolution for l in model["lods"] if l.resolution < VISUAL_LOD_MAX})
+    model = read_odol(data, "all" if keep_all else "visual", max_lod_bytes, log)
+    del data
+    write_mlod(model, dst)
     return model
+
+
+def lower_priority():
+    """Run below normal priority so the desktop stays responsive."""
+    try:
+        if sys.platform == "win32":
+            import ctypes
+            ctypes.windll.kernel32.SetPriorityClass(ctypes.windll.kernel32.GetCurrentProcess(), 0x4000)  # BELOW_NORMAL
+        else:
+            os.nice(10)
+    except Exception:
+        pass
+
+
+def batch(a):
+    lower_priority()
+    files = []
+    for d, _, fs in os.walk(a.src):
+        for f in fs:
+            if f.lower().endswith(".p3d"):
+                files.append(os.path.join(d, f))
+    files.sort()
+    todo, skipped_big, already = [], [], 0
+    for path in files:
+        with open(path, "rb") as fh:
+            sig = fh.read(4)
+        if sig != b"ODOL":
+            already += 1
+            continue
+        if os.path.getsize(path) > a.max_size << 20:
+            skipped_big.append(path)
+            continue
+        todo.append(path)
+    if a.limit:
+        todo = todo[:a.limit]
+    print(f"{len(files)} models: {len(todo)} to convert, {already} already MLOD, {len(skipped_big)} over {a.max_size} MB (skipped)")
+    if not files:
+        print(f"no .p3d files under {a.src}")
+    log = open(os.path.join(a.src, "odol.log"), "a", encoding="utf-8")
+    done, failed, t0 = 0, [], time.time()
+    for i, path in enumerate(todo, 1):
+        rel = os.path.relpath(path, a.src)
+        size = os.path.getsize(path)
+        elapsed = time.time() - t0
+        eta = (elapsed / (i - 1) * (len(todo) - i + 1)) if i > 1 else 0
+        print(f"[{i}/{len(todo)}] {rel} ({size / 1048576:.1f} MB)  elapsed {elapsed / 60:.0f} min, about {eta / 60:.0f} min left", flush=True)
+        t1 = time.time()
+        try:
+            model = convert(path, path + ".tmp", a.all_lods, a.max_lod << 20, log=lambda m: print(m, flush=True))
+            os.replace(path, path[:-4] + ".odol")
+            os.replace(path + ".tmp", path)
+            done += 1
+            lods = model["lods"]
+            print(f"    ok  {len(lods)} LOD(s), {sum(l.nfaces for l in lods)} faces, {time.time() - t1:.1f} s", flush=True)
+            log.write(f"ok  {rel}\n")
+        except MemoryError:
+            failed.append(rel)
+            print("    FAILED: out of memory, skipped", flush=True)
+            log.write(f"FAIL {rel}: out of memory\n")
+        except Exception as e:
+            failed.append(rel)
+            print(f"    FAILED: {e}", flush=True)
+            log.write(f"FAIL {rel}: {e}\n")
+        if os.path.exists(path + ".tmp"):
+            os.remove(path + ".tmp")
+        log.flush()
+        time.sleep(a.sleep)
+    log.close()
+    print(f"\nconverted {done}, failed {len(failed)}, already MLOD {already}, skipped as too big {len(skipped_big)}"
+          f"  ({(time.time() - t0) / 60:.0f} min)")
+    if skipped_big:
+        print("too big for the default limit (raise --max-size to include them):")
+        for p in skipped_big[:20]:
+            print("  " + os.path.relpath(p, a.src))
+    if failed:
+        print("failed (see odol.log):")
+        for p in failed[:20]:
+            print("  " + p)
 
 
 def main():
@@ -462,39 +612,20 @@ def main():
     ap.add_argument("dst", nargs="?")
     ap.add_argument("--batch", action="store_true", help="convert every ODOL .p3d under src in place, keeping the original as .odol")
     ap.add_argument("--all-lods", action="store_true", help="keep geometry, memory and other non-visual LODs too")
+    ap.add_argument("--max-size", type=int, default=MAX_FILE_MB, help=f"skip files bigger than this many MB (default {MAX_FILE_MB})")
+    ap.add_argument("--max-lod", type=int, default=MAX_LOD_MB, help=f"skip a single LOD bigger than this many MB (default {MAX_LOD_MB})")
+    ap.add_argument("--sleep", type=float, default=0.25, help="seconds to pause between files (default 0.25)")
+    ap.add_argument("--limit", type=int, help="stop after this many conversions (for a trial run)")
     a = ap.parse_args()
     if not os.path.exists(a.src):
         sys.exit(f"not found: {a.src}\n(in Git Bash, quote Windows paths or use forward slashes: \"F:\\PureZ\\PureZ-render\" or F:/PureZ/PureZ-render)")
     if a.batch:
-        done = failed = skipped = 0
-        for d, _, fs in os.walk(a.src):
-            for f in fs:
-                if not f.lower().endswith(".p3d"):
-                    continue
-                path = os.path.join(d, f)
-                with open(path, "rb") as fh:
-                    sig = fh.read(4)
-                if sig != b"ODOL":
-                    skipped += 1
-                    continue
-                try:
-                    convert(path, path + ".tmp", a.all_lods)
-                    os.replace(path, path[:-4] + ".odol")
-                    os.replace(path + ".tmp", path)
-                    done += 1
-                except Exception as e:
-                    failed += 1
-                    print(f"failed  {os.path.relpath(path, a.src)}: {e}")
-                    if os.path.exists(path + ".tmp"):
-                        os.remove(path + ".tmp")
-        print(f"converted {done}, failed {failed}, already MLOD {skipped}")
-        if not (done or failed or skipped):
-            print(f"no .p3d files under {a.src}")
+        batch(a)
     else:
         dst = a.dst or a.src[:-4] + ".mlod.p3d"
-        model = convert(a.src, dst, a.all_lods)
+        model = convert(a.src, dst, a.all_lods, a.max_lod << 20, log=print)
         for l in model["lods"]:
-            print(f"lod {l.resolution:g}: {len(l.points)} points, {len(l.faces)} faces, {len(l.proxies)} proxies, "
+            print(f"lod {l.resolution:g}: {l.npoints} points, {l.nfaces} faces, {len(l.proxies)} proxies, "
                   f"{len(l.selections)} selections, textures {[t for t in l.textures if t]}")
         print(f"wrote {dst}")
 
