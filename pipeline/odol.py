@@ -23,9 +23,20 @@ MAX_FILE_MB = 160         # --batch skips bigger files unless --max-size raises 
 MAX_LOD_MB = 64           # a single LOD bigger than this is skipped
 
 
+MAX_ARRAY = 256 << 20     # no single array is bigger than this; larger counts mean a misparsed file
+MAX_COUNT = 20_000_000
+
+
 class Reader:
     def __init__(self, data, pos=0):
         self.d, self.p = data, pos
+
+    def count(self, limit=MAX_COUNT):
+        """A u32 element count that must be plausible, so a misread never turns into a huge loop."""
+        v = self.u32()
+        if v > limit:
+            raise ValueError(f"implausible count {v} at 0x{self.p - 4:x}")
+        return v
 
     def u8(self):
         v = self.d[self.p]; self.p += 1; return v
@@ -65,7 +76,13 @@ class Reader:
 
     def compressed(self, count, size):
         n = count * size
-        return self.lzo(n) if n > 1023 else self.raw(n)
+        if n > MAX_ARRAY or n > 400 * (len(self.d) - self.p) + 4096:
+            raise ValueError(f"array of {n} bytes at 0x{self.p:x} cannot fit the file")
+        if n > 1023:
+            return self.lzo(n)
+        if self.p + n > len(self.d):
+            raise ValueError(f"array runs past the end of the file at 0x{self.p:x}")
+        return self.raw(n)
 
     def condensed(self, count, size):
         """CondensedArray: a fill flag, then one element for all, or the array."""
@@ -119,6 +136,8 @@ def lzo1x_decompress(src, ip, expected):
                         t += 255; ip += 1
                     t += 15 + src[ip]; ip += 1
                 t += 3
+                if len(out) + t > expected + 64 or ip + t > len(src):
+                    raise ValueError("LZO literal run longer than expected")
                 out += src[ip:ip + t]; ip += t
                 t = src[ip]; ip += 1
                 if t < 16:                           # short match after a literal run
@@ -162,8 +181,10 @@ def lzo1x_decompress(src, ip, expected):
             else:
                 pos = len(out) - 1 - (t >> 2) - (src[ip] << 2); ip += 1
                 length = 2
-            if pos < 0:
-                raise ValueError("LZO match before the start of the block")
+            if pos < 0 or pos >= len(out):
+                raise ValueError("LZO match outside the block")
+            if len(out) + length > expected + 64:
+                raise ValueError("LZO block longer than expected")
             while length > 0:                        # overlapping matches repeat what was just written
                 chunk = out[pos:pos + min(length, len(out) - pos)]
                 out += chunk
@@ -226,7 +247,7 @@ def read_material(r):
     m["surface"] = r.asciiz()
     r.u32()
     m["renderFlags"] = r.u32()
-    nt, ntr = r.u32(), r.u32()
+    nt, ntr = r.count(1000), r.count(1000)
     m["stages"] = []
     for _ in range(nt):
         st = {"filter": r.u32(), "texture": r.asciiz(), "transform": r.u32()}
@@ -328,25 +349,27 @@ def read_odol(data, which="visual", max_lod_bytes=MAX_LOD_MB << 20, log=None):
 
 def read_lod(r, end):
     lod = Lod()
-    for _ in range(r.u32()):
+    for _ in range(r.count(100000)):
         p = {"name": r.asciiz()}
         p["x"], p["y"], p["z"], p["n"] = r.f32(3), r.f32(3), r.f32(3), r.f32(3)
         p["id"], p["selection"], p["bone"], p["section"] = r.u32(), r.u32(), r.i32(), r.u32()
         lod.proxies.append(p)
-    r.raw(4 * r.u32())                         # subskeleton -> skeleton
-    for _ in range(r.u32()):                   # skeleton -> subskeleton links
-        r.raw(4 * r.u32())
-    npoints = r.u32()
+    r.raw(4 * r.count())                       # subskeleton -> skeleton
+    for _ in range(r.count()):                 # skeleton -> subskeleton links
+        r.raw(4 * r.count())
+    npoints = r.count()
     r.f32(); r.u32(); r.u32(); r.f32(3); r.f32(3); r.f32(3); r.f32()
-    lod.textures = [r.asciiz() for _ in range(r.u32())]
-    lod.materials = [read_material(r) for _ in range(r.u32())]
+    lod.textures = [r.asciiz() for _ in range(r.count(100000))]
+    lod.materials = [read_material(r) for _ in range(r.count(100000))]
     n = r.u32()
     if n:
         r.compressed(n, 2)                     # point -> vertex
     n = r.u32()
     if n:
         r.compressed(n, 2)                     # vertex -> point
-    nfaces, alloc = r.u32(), r.u32()
+    nfaces, alloc = r.count(), r.u32()
+    if alloc > len(r.d) - r.p:
+        raise ValueError(f"face table of {alloc} bytes at 0x{r.p:x} runs past the end of the file")
     r.u16()
     face_start = r.p
     # vertex indices are 16-bit unless the LOD has more than 65535 vertices (then 32-bit)
@@ -373,7 +396,7 @@ def read_lod(r, end):
             r.p += k * isz
     if r.p - face_start != alloc and r.p - face_start + nfaces != alloc:
         raise ValueError(f"face table size {r.p - face_start} != allocation {alloc}")
-    for _ in range(r.u32()):                   # sections
+    for _ in range(r.count(1000000)):          # sections
         s = {"start": r.u32(), "end": r.u32()}
         r.u32(); r.u32(); r.u32()
         s["texture"] = struct.unpack("<h", r.raw(2))[0]
@@ -388,36 +411,36 @@ def read_lod(r, end):
     # index arrays are 16-bit unless the LOD has more than 65535 faces/vertices
     fsz, fch = (2, "H") if nfaces <= 0xFFFF else (4, "I")
     vsz, vch = (2, "H") if npoints <= 0xFFFF else (4, "I")
-    for _ in range(r.u32()):                   # named selections
+    for _ in range(r.count(100000)):           # named selections
         name = r.asciiz()
-        nf = r.u32()
+        nf = r.count()
         faces = array.array("I", struct.unpack(f"<{nf}{fch}", r.compressed(nf, fsz))) if nf else array.array("I")
         r.u32()
         r.u8()
-        ns = r.u32()
+        ns = r.count()
         if ns:
             r.compressed(ns, 4)
-        nv = r.u32()
+        nv = r.count()
         verts = array.array("I", struct.unpack(f"<{nv}{vch}", r.compressed(nv, vsz))) if nv else array.array("I")
-        nw = r.u32()
+        nw = r.count()
         weights = r.compressed(nw, 1) if nw else b""
         lod.selections[name] = {"faces": faces, "vertices": verts, "weights": weights}
-    for _ in range(r.u32()):
+    for _ in range(r.count(100000)):
         key = r.asciiz()
         lod.properties[key] = r.asciiz()
-    nframes = r.u32()
+    nframes = r.count(100000)
     for _ in range(nframes):
         r.f32(); r.f32(npoints)
     r.u32(); r.u32(); r.u32(); r.u8()          # icon colour, selected colour, flags, simple bone refs
     r.u32()                                    # vertex table size
-    r.condensed(r.u32(), 4)                    # point flags
+    r.condensed(r.count(), 4)                  # point flags
     uv_scale = r.f32(4)
     lod.uvs = read_uvs(r, uv_scale)
-    for _ in range(r.u32() - 1):               # further UV sets
+    for _ in range(r.count(64) - 1):           # further UV sets
         read_uvs(r, r.f32(4))
-    n = r.u32()
+    n = r.count()
     lod.points = np.frombuffer(r.compressed(n, 12), dtype="<f4").copy()
-    n = r.u32()
+    n = r.count()
     packed = np.frombuffer(r.condensed(n, 4), dtype="<u4")
     comps = np.stack([(packed >> sh) & 0x3FF for sh in (0, 10, 20)], axis=1).astype(np.int32)
     comps = np.where(comps & 0x200, comps - 1024, comps)
@@ -439,7 +462,7 @@ def read_lod(r, end):
 
 
 def read_uvs(r, scale):
-    n = r.u32()
+    n = r.count()
     raw = np.frombuffer(r.condensed(n, 4), dtype="<i2").reshape(-1, 2).astype(np.float32)
     u0, v0, u1, v1 = scale
     out = (raw + 32767.0) * np.array([(u1 - u0) / 65534, (v1 - v0) / 65534], dtype=np.float32) + np.array([u0, v0], dtype=np.float32)
@@ -614,7 +637,15 @@ def lower_priority():
         pass
 
 
+def _convert_job(path, keep_all, max_lod_bytes):
+    """Runs in a worker process: convert one file, return (lods, faces) or raise."""
+    lower_priority()
+    model = convert(path, path + ".tmp", keep_all, max_lod_bytes)
+    return len(model["lods"]), sum(l.nfaces for l in model["lods"]), [f"{x:g}" for x in model["skipped"]]
+
+
 def batch(a):
+    import concurrent.futures as cf
     lower_priority()
     files = []
     for d, _, fs in os.walk(a.src):
@@ -638,42 +669,85 @@ def batch(a):
     print(f"{len(files)} models: {len(todo)} to convert, {already} already MLOD, {len(skipped_big)} over {a.max_size} MB (skipped)")
     if not files:
         print(f"no .p3d files under {a.src}")
-    print("LZO decoder: " + ("python-lzo (C)" if _lzo else "pure Python (pip install python-lzo for a faster run)"))
+    print("LZO decoder: " + ("python-lzo (C)" if _lzo else "pure Python (pip install python-lzo for a faster run)")
+          + f", {a.workers} worker(s), {a.timeout} s per file")
     log = open(os.path.join(a.src, "odol.log"), "a", encoding="utf-8")
     done, failed, t0 = 0, [], time.time()
-    samples = {}          # (version, first words of the error) -> smallest failing file, for --collect-samples
-    for i, path in enumerate(todo, 1):
+    samples = {}          # (version, first words of the error) -> smallest failing file so far
+    if a.collect_samples:
+        os.makedirs(a.collect_samples, exist_ok=True)
+
+    def finish(path, outcome, detail):
+        nonlocal done
         rel = os.path.relpath(path, a.src)
-        size = os.path.getsize(path)
-        elapsed = time.time() - t0
-        eta = (elapsed / (i - 1) * (len(todo) - i + 1)) if i > 1 else 0
-        print(f"[{i}/{len(todo)}] {rel} ({size / 1048576:.1f} MB)  elapsed {elapsed / 60:.0f} min, about {eta / 60:.0f} min left", flush=True)
-        t1 = time.time()
-        try:
-            model = convert(path, path + ".tmp", a.all_lods, a.max_lod << 20, log=lambda m: print(m, flush=True))
+        size = os.path.getsize(path) if os.path.exists(path) else 0
+        if outcome == "ok":
             os.replace(path, path[:-4] + ".odol")
             os.replace(path + ".tmp", path)
             done += 1
-            lods = model["lods"]
-            print(f"    ok  {len(lods)} LOD(s), {sum(l.nfaces for l in lods)} faces, {time.time() - t1:.1f} s", flush=True)
+            print(f"    ok  {rel}: {detail}", flush=True)
             log.write(f"ok  {rel}\n")
-        except MemoryError:
+        else:
             failed.append(rel)
-            print("    FAILED: out of memory, skipped", flush=True)
-            log.write(f"FAIL {rel}: out of memory\n")
-        except Exception as e:
-            failed.append(rel)
-            print(f"    FAILED: {e}", flush=True)
-            log.write(f"FAIL {rel}: {e}\n")
-            with open(path, "rb") as fh:
-                ver = struct.unpack("<4xI", fh.read(8))[0]
-            key = (ver, " ".join(str(e).split()[:4]))
-            if key not in samples or size < os.path.getsize(samples[key]):
+            print(f"    FAILED {rel}: {detail}", flush=True)
+            log.write(f"FAIL {rel}: {detail}\n")
+            try:
+                with open(path, "rb") as fh:
+                    ver = struct.unpack("<4xI", fh.read(8))[0]
+            except Exception:
+                ver = 0
+            key = (ver, " ".join(str(detail).split()[:5]))
+            if a.collect_samples and (key not in samples or size < os.path.getsize(samples[key])):
+                import shutil
                 samples[key] = path
+                shutil.copy2(path, os.path.join(a.collect_samples, f"v{ver}_{os.path.basename(path)}"))
         if os.path.exists(path + ".tmp"):
             os.remove(path + ".tmp")
         log.flush()
-        time.sleep(a.sleep)
+
+    pool = cf.ProcessPoolExecutor(max_workers=a.workers)
+    pending = {}
+    queue = list(todo)
+    started = 0
+    try:
+        while queue or pending:
+            while queue and len(pending) < a.workers:
+                path = queue.pop(0)
+                started += 1
+                elapsed = time.time() - t0
+                rate = (done + len(failed)) / elapsed if elapsed > 0 and (done + len(failed)) else 0
+                eta = (len(todo) - done - len(failed)) / rate / 60 if rate else 0
+                print(f"[{started}/{len(todo)}] {os.path.relpath(path, a.src)} ({os.path.getsize(path) / 1048576:.1f} MB)"
+                      f"  {elapsed / 60:.0f} min elapsed, about {eta:.0f} min left", flush=True)
+                fut = pool.submit(_convert_job, path, a.all_lods, a.max_lod << 20)
+                pending[fut] = (path, time.time())
+            donefs, _ = cf.wait(list(pending), timeout=1, return_when=cf.FIRST_COMPLETED)
+            for fut in donefs:
+                path, t1 = pending.pop(fut)
+                try:
+                    nl, nf, skipped = fut.result()
+                    finish(path, "ok", f"{nl} LOD(s), {nf} faces, {time.time() - t1:.1f} s" + (f", skipped big LOD(s) {', '.join(skipped)}" if skipped else ""))
+                except Exception as e:
+                    finish(path, "fail", "out of memory" if isinstance(e, MemoryError) else str(e))
+            # a file that runs past the timeout is abandoned with its worker
+            stuck = [f for f, (path, t1) in pending.items() if time.time() - t1 > a.timeout]
+            if stuck:
+                for f in stuck:
+                    path, _ = pending.pop(f)
+                    finish(path, "fail", f"no result after {a.timeout} s, worker restarted")
+                for proc in list(pool._processes.values()):
+                    proc.terminate()
+                pool.shutdown(wait=False, cancel_futures=True)
+                for f, (path, _) in pending.items():
+                    queue.insert(0, path)
+                pending.clear()
+                pool = cf.ProcessPoolExecutor(max_workers=a.workers)
+            time.sleep(a.sleep)
+    except KeyboardInterrupt:
+        print("\nstopped; run again to continue where it left off", flush=True)
+        for proc in list(pool._processes.values()):
+            proc.terminate()
+    pool.shutdown(wait=False, cancel_futures=True)
     log.close()
     print(f"\nconverted {done}, failed {len(failed)}, already MLOD {already}, skipped as too big {len(skipped_big)}"
           f"  ({(time.time() - t0) / 60:.0f} min)")
@@ -682,20 +756,12 @@ def batch(a):
         for p in skipped_big[:20]:
             print("  " + os.path.relpath(p, a.src))
     if failed:
-        print("failed (see odol.log):")
-        for p in failed[:20]:
-            print("  " + p)
         by_ver = {}
         for (ver, _), path in samples.items():
             by_ver.setdefault(ver, []).append(path)
-        print("failures by ODOL version: " + ", ".join(f"v{v}: {len(ps)} kind(s)" for v, ps in sorted(by_ver.items())))
+        print(f"{len(failed)} failed (listed in odol.log)" + (": " + ", ".join(f"v{v}: {len(ps)} kind(s)" for v, ps in sorted(by_ver.items())) if by_ver else ""))
         if a.collect_samples:
-            import shutil
-            os.makedirs(a.collect_samples, exist_ok=True)
-            for (ver, _), path in samples.items():
-                dst = os.path.join(a.collect_samples, f"v{ver}_{os.path.basename(path)}")
-                shutil.copy2(path, dst)
-            print(f"copied {len(samples)} sample(s) of the failing kinds to {a.collect_samples}: commit them to the wiki repo's samples/ folder")
+            print(f"one sample of each failing kind is in {a.collect_samples}: commit that folder so the decoder can be extended")
 
 
 def main():
@@ -709,6 +775,8 @@ def main():
     ap.add_argument("--sleep", type=float, default=0.05, help="seconds to pause between files (default 0.05)")
     ap.add_argument("--limit", type=int, help="stop after this many conversions (for a trial run)")
     ap.add_argument("--collect-samples", metavar="DIR", help="copy the smallest failing file of each version/error into DIR")
+    ap.add_argument("--workers", type=int, default=2, help="files converted at once (default 2)")
+    ap.add_argument("--timeout", type=int, default=180, help="seconds allowed per file before it is abandoned (default 180)")
     a = ap.parse_args()
     if not os.path.exists(a.src):
         sys.exit(f"not found: {a.src}\n(in Git Bash, quote Windows paths or use forward slashes: \"F:\\PureZ\\PureZ-render\" or F:/PureZ/PureZ-render)")
