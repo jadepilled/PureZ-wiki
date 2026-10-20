@@ -35,11 +35,14 @@ To get editable MLOD files (for Object Builder or the Blender Arma toolbox) run 
 `python pipeline/odol.py model.p3d` writes `model.mlod.p3d`; `python pipeline/odol.py --batch F:/PureZ/PureZ-render`
 converts every ODOL file in place and keeps the original as `.odol`. Only the visual LODs are written
 unless `--all-lods` is given. The batch run prints one line per file with its size, elapsed time and the
-time left, runs at below-normal priority, pauses briefly between files, and skips files over 48 MB and
-single LODs over 24 MB (the oversized world models the prune moved into the folder) so it cannot exhaust
-memory; raise `--max-size` / `--max-lod` to include them one at a time. `--limit 20` does a trial run of
-twenty files. Results are appended to `odol.log` in the folder. In Git Bash, quote Windows paths or use
-forward slashes. `deodol.py` (the DeODOL driver) is kept as an alternative but is no longer needed.
+time left, runs at below-normal priority, and skips files over 160 MB and single LODs over 64 MB
+(`--max-size` / `--max-lod` to change). `--limit 20` does a trial run. Results go to `odol.log` in the
+folder, and converted files are skipped on a rerun. `pip install python-lzo` makes decoding several
+times faster; the script says which decoder it is using. In Git Bash, quote Windows paths or use
+forward slashes. DayZ ships ODOL versions 53 to 56; 56 is verified, the others use the same layout until
+proven otherwise. If any fail, run with `--collect-samples F:/PureZ/PureZ-wiki/samples/odol` and commit
+that folder so the decoder can be extended from real files.
+`deodol.py` (the DeODOL driver) is kept as an alternative but is no longer needed.
 
 ## Weapon attachments
 

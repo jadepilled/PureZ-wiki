@@ -1,4 +1,4 @@
-"""Read DayZ's binarised ODOL P3D models (version 56) and convert them to MLOD.
+"""Read DayZ's binarised ODOL P3D models (versions 53 to 56) and convert them to MLOD.
 
     python pipeline/odol.py <model.p3d> [out.p3d]        # writes <model>.mlod.p3d by default
     python pipeline/odol.py --batch <folder>              # every ODOL under the folder, in place (original kept as .odol)
@@ -11,9 +11,16 @@ binarised. Arrays over 1023 bytes are LZO-compressed (lzo1x).
 """
 import argparse, array, math, os, struct, sys, time
 
+import numpy as np
+
+try:
+    import lzo as _lzo          # python-lzo: C decoder, several times faster than the pure-Python one
+except ImportError:
+    _lzo = None
+
 VISUAL_LOD_MAX = 1000.0
-MAX_FILE_MB = 48          # --batch skips bigger files unless --max-size raises this
-MAX_LOD_MB = 24           # a single LOD bigger than this is skipped
+MAX_FILE_MB = 160         # --batch skips bigger files unless --max-size raises this
+MAX_LOD_MB = 64           # a single LOD bigger than this is skipped
 
 
 class Reader:
@@ -49,7 +56,10 @@ class Reader:
 
     def lzo(self, expected):
         """LZO1X decompression of the next block; the stream's own end marker tells how much input it used."""
-        out, used = lzo1x_decompress(self.d, self.p, expected)
+        if _lzo is not None:
+            out, used = lzo_c_decompress(self.d, self.p, expected)
+        else:
+            out, used = lzo1x_decompress(self.d, self.p, expected)
         self.p += used
         return out
 
@@ -64,6 +74,28 @@ class Reader:
         if self.u8():
             return self.raw(size) * count
         return self.compressed(count, size)
+
+
+def lzo_c_decompress(src, ip, expected):
+    """python-lzo does not report how much input it consumed, so find the block length by bisection:
+    too short fails with an input overrun, too long with input not consumed, exact succeeds."""
+    hi = min(len(src) - ip, expected + expected // 16 + 64)
+    lo = 0
+    best = None
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        try:
+            out = _lzo.decompress(bytes(src[ip:ip + mid]), False, expected)
+            best = (out, mid)
+            hi = mid - 1
+        except _lzo.error as e:
+            if "not consumed" in str(e).lower():
+                hi = mid - 1
+            else:
+                lo = mid + 1
+    if best is None:
+        return lzo1x_decompress(src, ip, expected)
+    return best
 
 
 def lzo1x_decompress(src, ip, expected):
@@ -167,6 +199,9 @@ class Lod:
     def npoints(self):
         return len(self.points) // 3
 
+    def face_counts(self):
+        return np.frombuffer(self.face_n.tobytes(), dtype=np.uint8) if len(self.face_n) else np.zeros(0, np.uint8)
+
     @property
     def nfaces(self):
         return len(self.face_n)
@@ -236,8 +271,8 @@ def read_odol(data, which="visual", max_lod_bytes=MAX_LOD_MB << 20, log=None):
     if r.raw(4) != b"ODOL":
         raise ValueError("not an ODOL file")
     version = r.u32()
-    if version != 56:
-        raise ValueError(f"ODOL version {version}; only version 56 (DayZ) is handled")
+    if not 53 <= version <= 56:
+        raise ValueError(f"ODOL version {version} is not supported (DayZ ships 53 to 56)")
     nlods = r.u32()
     resolutions = [r.f32() for _ in range(nlods)]
 
@@ -280,7 +315,10 @@ def read_odol(data, which="visual", max_lod_bytes=MAX_LOD_MB << 20, log=None):
         if ends[i] - starts[i] > max_lod_bytes:
             skipped.append(res)
             continue
-        lod = read_lod(Reader(data, starts[i]), ends[i])
+        try:
+            lod = read_lod(Reader(data, starts[i]), ends[i])
+        except Exception as e:
+            raise ValueError(f"version {version}, LOD {res:g}: {e}") from e
         lod.resolution = res
         lods.append(lod)
     if skipped and log:
@@ -313,14 +351,26 @@ def read_lod(r, end):
     face_start = r.p
     # vertex indices are 16-bit unless the LOD has more than 65535 vertices (then 32-bit)
     isz, ich = (2, "H") if npoints <= 0xFFFF else (4, "I")
-    face_offsets = array.array("I")
     d = r.d
-    for _ in range(nfaces):
-        face_offsets.append(r.p - face_start)
-        k = d[r.p]; r.p += 1
-        lod.face_n.append(k)
-        lod.face_v.extend(struct.unpack_from(f"<{k}{ich}", d, r.p))
-        r.p += k * isz
+    uniform = next((k for k in (3, 4) if nfaces * (1 + k * isz) in (alloc, alloc - nfaces)), None)
+    if uniform and all(d[face_start + i * (1 + uniform * isz)] == uniform for i in range(0, nfaces, max(1, nfaces // 64))):
+        rec = np.dtype([("n", "u1"), ("v", f"<{ich.lower() if ich == 'I' else 'u2'}", (uniform,))]) if ich == "H" else np.dtype([("n", "u1"), ("v", "<u4", (uniform,))])
+        table = np.frombuffer(d, dtype=rec, count=nfaces, offset=face_start)
+        if not np.all(table["n"] == uniform):
+            uniform = None
+        else:
+            lod.face_n = array.array("B", bytes([uniform]) * nfaces)
+            lod.face_v = array.array("I", table["v"].astype("<u4").reshape(-1).tobytes())
+            face_offsets = np.arange(nfaces, dtype=np.uint32) * (1 + uniform * isz)
+            r.p = face_start + nfaces * (1 + uniform * isz)
+    if not uniform:
+        face_offsets = array.array("I")
+        for _ in range(nfaces):
+            face_offsets.append(r.p - face_start)
+            k = d[r.p]; r.p += 1
+            lod.face_n.append(k)
+            lod.face_v.extend(struct.unpack_from(f"<{k}{ich}", d, r.p))
+            r.p += k * isz
     if r.p - face_start != alloc and r.p - face_start + nfaces != alloc:
         raise ValueError(f"face table size {r.p - face_start} != allocation {alloc}")
     for _ in range(r.u32()):                   # sections
@@ -366,44 +416,34 @@ def read_lod(r, end):
     for _ in range(r.u32() - 1):               # further UV sets
         read_uvs(r, r.f32(4))
     n = r.u32()
-    lod.points = array.array("f")
-    lod.points.frombytes(r.compressed(n, 12))
+    lod.points = np.frombuffer(r.compressed(n, 12), dtype="<f4").copy()
     n = r.u32()
-    packed = array.array("I")
-    packed.frombytes(r.condensed(n, 4))
-    lod.normals = array.array("f")
-    for v in packed:
-        lod.normals.extend(unpack_normal(v))
+    packed = np.frombuffer(r.condensed(n, 4), dtype="<u4")
+    comps = np.stack([(packed >> sh) & 0x3FF for sh in (0, 10, 20)], axis=1).astype(np.int32)
+    comps = np.where(comps & 0x200, comps - 1024, comps)
+    lod.normals = (comps / -511.0).astype("<f4").reshape(-1)
     # tangents, bone weights and the rest of the vertex table are not needed
     if lod.npoints != npoints:
         raise ValueError("point count mismatch")
 
     # texture and material per face from the sections (byte ranges of the face table)
-    lod.face_tex = array.array("h", [-1]) * nfaces
-    lod.face_mat = array.array("h", [-1]) * nfaces
-    secs = sorted(lod.sections, key=lambda x: x["start"])
-    si = 0
-    for i, off in enumerate(face_offsets):
-        while si < len(secs) and off >= secs[si]["end"]:
-            si += 1
-        if si < len(secs) and secs[si]["start"] <= off:
-            t, m = secs[si]["texture"], secs[si]["material"]
-            lod.face_tex[i] = t if 0 <= t < len(lod.textures) else -1
-            lod.face_mat[i] = m if 0 <= m < len(lod.materials) else -1
+    offs = np.asarray(face_offsets, dtype=np.int64)
+    tex = np.full(nfaces, -1, np.int16)
+    mat = np.full(nfaces, -1, np.int16)
+    for sec in lod.sections:
+        m = (offs >= sec["start"]) & (offs < sec["end"])
+        tex[m] = sec["texture"] if 0 <= sec["texture"] < len(lod.textures) else -1
+        mat[m] = sec["material"] if 0 <= sec["material"] < len(lod.materials) else -1
+    lod.face_tex, lod.face_mat = tex, mat
     return lod
 
 
 def read_uvs(r, scale):
     n = r.u32()
-    raw = array.array("h")
-    raw.frombytes(r.condensed(n, 4))
+    raw = np.frombuffer(r.condensed(n, 4), dtype="<i2").reshape(-1, 2).astype(np.float32)
     u0, v0, u1, v1 = scale
-    su, sv = (u1 - u0) / 65534, (v1 - v0) / 65534
-    out = array.array("f", [0.0]) * (2 * n)
-    for i in range(n):
-        out[2 * i] = (raw[2 * i] + 32767) * su + u0
-        out[2 * i + 1] = (raw[2 * i + 1] + 32767) * sv + v0
-    return out
+    out = (raw + 32767.0) * np.array([(u1 - u0) / 65534, (v1 - v0) / 65534], dtype=np.float32) + np.array([u0, v0], dtype=np.float32)
+    return out.astype("<f4").reshape(-1)
 
 
 def unpack_normal(v):
@@ -422,85 +462,119 @@ def proxy_triangle(p):
     return [tuple(o), tuple(o[k] + 0.1 * p["z"][k] for k in range(3)), tuple(o[k] + 0.05 * p["y"][k] for k in range(3))]
 
 
+FACE_REC = np.dtype([("n", "<u4")] + [(f"{k}{i}", t) for i in range(4) for k, t in (("p", "<u4"), ("nm", "<u4"), ("u", "<f4"), ("v", "<f4"))] + [("flags", "<u4")])
+
+
 def mlod_chunks(model, lods=None):
     """Yield the MLOD file as chunks, one LOD at a time, so a big model never sits in memory twice."""
     chosen = [l for l in model["lods"] if lods is None or l.resolution in lods]
     yield b"MLOD" + struct.pack("<II", 257, len(chosen))
     for lod in chosen:
+        npts_src = lod.npoints
+        P = np.asarray(lod.points, dtype=np.float32).reshape(-1, 3)
         # ODOL splits a point per normal/UV; weld them back by position so faces share vertices
-        weld, remap, points = {}, array.array("I"), array.array("f")
-        P = lod.points
-        for i in range(lod.npoints):
-            key = (round(P[3 * i], 6), round(P[3 * i + 1], 6), round(P[3 * i + 2], 6))
-            j = weld.get(key)
-            if j is None:
-                j = weld[key] = len(points) // 3
-                points.extend(P[3 * i:3 * i + 3])
-            remap.append(j)
-        del weld
-        normals = array.array("f", lod.normals) if len(lod.normals) else array.array("f", [0.0, 1.0, 0.0])
-        nnorm = len(normals) // 3
-        faces = []                          # (verts [(pt, nrm, u, v)], tex, mat)
-        U = lod.uvs
-        for off, n in lod.faces():
-            verts = []
-            for k in range(off, off + n):
-                vi = lod.face_v[k]
-                verts.append((remap[vi], vi if vi < nnorm else 0, U[2 * vi] if 2 * vi + 1 < len(U) else 0.0, U[2 * vi + 1] if 2 * vi + 1 < len(U) else 0.0))
-            faces.append([verts, lod.face_tex[len(faces)], lod.face_mat[len(faces)]])
-        sel_faces = {name: set(sel["faces"]) for name, sel in lod.selections.items()}
-        sel_points = {name: {remap[v] for v in sel["vertices"] if v < len(remap)} for name, sel in lod.selections.items()}
+        if npts_src:
+            uniq, remap = np.unique(np.round(P, 6), axis=0, return_inverse=True)
+            remap = remap.reshape(-1).astype(np.uint32)
+            order = np.full(len(uniq), -1, np.int64)      # first source vertex of each welded point, keeps order stable
+            np.minimum.at(order, remap, np.arange(npts_src))
+            keep = np.argsort(order)
+            rank = np.empty_like(keep); rank[keep] = np.arange(len(keep))
+            remap = rank[remap].astype(np.uint32)
+            points = P[order[keep]]
+        else:
+            remap, points = np.zeros(0, np.uint32), np.zeros((0, 3), np.float32)
+        normals = np.asarray(lod.normals, dtype=np.float32).reshape(-1, 3) if len(lod.normals) else np.array([[0.0, 1.0, 0.0]], np.float32)
+        nnorm = len(normals)
+        uvs = np.asarray(lod.uvs, dtype=np.float32).reshape(-1, 2) if len(lod.uvs) else np.zeros((0, 2), np.float32)
+
+        # faces: fixed-size records, plus the texture/material names per face
+        counts = lod.face_counts().astype(np.int64)
+        nf = len(counts)
+        starts = np.concatenate([[0], np.cumsum(counts)[:-1]]) if nf else np.zeros(0, np.int64)
+        fv = np.frombuffer(lod.face_v.tobytes(), dtype="<u4").astype(np.int64) if len(lod.face_v) else np.zeros(0, np.int64)
+        rec = np.zeros(nf, FACE_REC)
+        rec["n"] = counts
+        for k in range(4):
+            has = counts > k
+            idx = fv[np.minimum(starts + k, max(len(fv) - 1, 0))] if len(fv) else np.zeros(nf, np.int64)
+            vi = np.where(has, idx, 0)
+            rec[f"p{k}"] = np.where(has, remap[np.minimum(vi, max(npts_src - 1, 0))] if npts_src else 0, 0)
+            rec[f"nm{k}"] = np.where(has & (vi < nnorm), vi, 0)
+            if len(uvs):
+                uv = uvs[np.minimum(vi, len(uvs) - 1)]
+                rec[f"u{k}"] = np.where(has, uv[:, 0], 0.0)
+                rec[f"v{k}"] = np.where(has, uv[:, 1], 0.0)
+        tex_i = np.asarray(lod.face_tex, dtype=np.int64)
+        mat_i = np.asarray(lod.face_mat, dtype=np.int64)
+        tails = {}
+        for ti in np.unique(tex_i):
+            for mi in np.unique(mat_i[tex_i == ti]):
+                tails[(int(ti), int(mi))] = ((lod.textures[ti].encode("latin1") if ti >= 0 else b"") + b"\0"
+                                            + (lod.materials[mi]["path"].encode("latin1") if mi >= 0 else b"") + b"\0")
+        sel_faces = {name: set(sel["faces"].tolist()) for name, sel in lod.selections.items()}
+        sel_points = {name: set(remap[np.asarray(sel["vertices"], dtype=np.int64)[np.asarray(sel["vertices"], dtype=np.int64) < npts_src]].tolist())
+                      for name, sel in lod.selections.items()}
+
         # proxies: replace the stored placeholder triangle with one built from the proxy's transform
         names = list(lod.selections)
+        extra_pts, extra_nrm, extra_faces, drop = [], [], [], set()
         for p in lod.proxies:
             name = names[p["selection"]] if p["selection"] < len(names) else f"proxy:{p['name']}.{p['id']:03d}"
-            base = len(points) // 3
-            for pt in proxy_triangle(p):
-                points.extend(pt)
-            normals.extend((0.0, 1.0, 0.0))
-            ni = len(normals) // 3 - 1
-            verts = [(base, ni, 0.0, 0.0), (base + 1, ni, 0.0, 0.0), (base + 2, ni, 0.0, 0.0)]
+            base = len(points) + len(extra_pts)
+            extra_pts += proxy_triangle(p)
+            ni = nnorm + len(extra_nrm)
+            extra_nrm.append((0.0, 1.0, 0.0))
+            face = np.zeros(1, FACE_REC)
+            face["n"] = 3
+            for k in range(3):
+                face[f"p{k}"], face[f"nm{k}"] = base + k, ni
             old = sorted(sel_faces.get(name, ()))
             if old:
-                faces[old[0]] = [verts, -1, -1]
-                for extra in old[1:]:
-                    faces[extra] = [[], -1, -1]          # dropped below
+                rec[old[0]] = face[0]
+                tails_key = (-1, -1)
+                tex_i[old[0]], mat_i[old[0]] = -1, -1
+                drop |= set(old[1:])
                 sel_faces[name] = {old[0]}
             else:
-                faces.append([verts, -1, -1])
-                sel_faces[name] = {len(faces) - 1}
+                extra_faces.append(face[0])
+                sel_faces[name] = {nf + len(extra_faces) - 1}
             sel_points[name] = {base, base + 1, base + 2}
-        keep = [i for i, f in enumerate(faces) if f[0]]
-        renum = {old: new for new, old in enumerate(keep)}
-        faces = [faces[i] for i in keep]
-        sel_faces = {n: {renum[i] for i in fs if i in renum} for n, fs in sel_faces.items()}
-        npts = len(points) // 3
+        tails[(-1, -1)] = b"\0\0"
+        if extra_pts:
+            points = np.concatenate([points, np.array(extra_pts, np.float32)])
+            normals = np.concatenate([normals, np.array(extra_nrm, np.float32)])
+        if extra_faces:
+            rec = np.concatenate([rec, np.array(extra_faces, FACE_REC)])
+            tex_i = np.concatenate([tex_i, np.full(len(extra_faces), -1)])
+            mat_i = np.concatenate([mat_i, np.full(len(extra_faces), -1)])
+        if drop:
+            keep_f = np.array([i for i in range(len(rec)) if i not in drop])
+            renum = {int(old): new for new, old in enumerate(keep_f)}
+            rec, tex_i, mat_i = rec[keep_f], tex_i[keep_f], mat_i[keep_f]
+            sel_faces = {n: {renum[i] for i in fs if i in renum} for n, fs in sel_faces.items()}
+        npts, nfaces_out = len(points), len(rec)
 
-        out = bytearray(b"P3DM" + struct.pack("<IIIIII", 28, 256, npts, nnorm + (len(normals) // 3 - nnorm), len(faces), 0))
-        for i in range(npts):
-            out += struct.pack("<fffI", points[3 * i], points[3 * i + 1], points[3 * i + 2], 0)
-        out += normals.tobytes()
-        yield bytes(out)
-        out = bytearray()
-        tex_names = [t.encode("latin1") for t in lod.textures]
-        mat_names = [m["path"].encode("latin1") for m in lod.materials]
-        for verts, ti, mi in faces:
-            out += struct.pack("<I", len(verts))
-            for k in range(4):
-                pi, ni, u, v = verts[k] if k < len(verts) else (0, 0, 0.0, 0.0)
-                out += struct.pack("<IIff", pi, ni, u, v)
-            out += b"\0\0\0\0" + (tex_names[ti] if ti >= 0 else b"") + b"\0" + (mat_names[mi] if mi >= 0 else b"") + b"\0"
-            if len(out) > (4 << 20):
-                yield bytes(out)
-                out = bytearray()
-        out += b"TAGG"
+        head = bytearray(b"P3DM" + struct.pack("<IIIIII", 28, 256, npts, len(normals), nfaces_out, 0))
+        pts_rec = np.zeros(npts, np.dtype([("xyz", "<f4", (3,)), ("f", "<u4")]))
+        pts_rec["xyz"] = points
+        head += pts_rec.tobytes()
+        head += normals.astype("<f4").tobytes()
+        yield bytes(head)
+        fixed = rec.tobytes()
+        sz = FACE_REC.itemsize
+        mv = memoryview(fixed)
+        keys = list(zip(tex_i.tolist(), mat_i.tolist()))
+        for i0 in range(0, nfaces_out, 50000):
+            yield b"".join(bytes(mv[i * sz:(i + 1) * sz]) + tails[keys[i]] for i in range(i0, min(nfaces_out, i0 + 50000)))
+        out = bytearray(b"TAGG")
         for name in sel_faces:
-            body = bytearray(npts + len(faces))
-            for i in sel_points.get(name, ()):
-                body[i] = 1
-            for i in sel_faces[name]:
-                body[npts + i] = 1
-            out += b"\x01" + name.encode("latin1") + b"\0" + struct.pack("<I", len(body)) + body
+            body = np.zeros(npts + nfaces_out, np.uint8)
+            pi = np.fromiter(sel_points.get(name, ()), dtype=np.int64)
+            fi = np.fromiter(sel_faces[name], dtype=np.int64)
+            body[pi[pi < npts]] = 1
+            body[npts + fi[fi < nfaces_out]] = 1
+            out += b"\x01" + name.encode("latin1") + b"\0" + struct.pack("<I", len(body)) + body.tobytes()
         for k, v in lod.properties.items():
             body = k.encode("latin1")[:63].ljust(64, b"\0") + v.encode("latin1")[:63].ljust(64, b"\0")
             out += b"\x01#Property#\0" + struct.pack("<I", len(body)) + body
@@ -564,8 +638,10 @@ def batch(a):
     print(f"{len(files)} models: {len(todo)} to convert, {already} already MLOD, {len(skipped_big)} over {a.max_size} MB (skipped)")
     if not files:
         print(f"no .p3d files under {a.src}")
+    print("LZO decoder: " + ("python-lzo (C)" if _lzo else "pure Python (pip install python-lzo for a faster run)"))
     log = open(os.path.join(a.src, "odol.log"), "a", encoding="utf-8")
     done, failed, t0 = 0, [], time.time()
+    samples = {}          # (version, first words of the error) -> smallest failing file, for --collect-samples
     for i, path in enumerate(todo, 1):
         rel = os.path.relpath(path, a.src)
         size = os.path.getsize(path)
@@ -589,6 +665,11 @@ def batch(a):
             failed.append(rel)
             print(f"    FAILED: {e}", flush=True)
             log.write(f"FAIL {rel}: {e}\n")
+            with open(path, "rb") as fh:
+                ver = struct.unpack("<4xI", fh.read(8))[0]
+            key = (ver, " ".join(str(e).split()[:4]))
+            if key not in samples or size < os.path.getsize(samples[key]):
+                samples[key] = path
         if os.path.exists(path + ".tmp"):
             os.remove(path + ".tmp")
         log.flush()
@@ -604,6 +685,17 @@ def batch(a):
         print("failed (see odol.log):")
         for p in failed[:20]:
             print("  " + p)
+        by_ver = {}
+        for (ver, _), path in samples.items():
+            by_ver.setdefault(ver, []).append(path)
+        print("failures by ODOL version: " + ", ".join(f"v{v}: {len(ps)} kind(s)" for v, ps in sorted(by_ver.items())))
+        if a.collect_samples:
+            import shutil
+            os.makedirs(a.collect_samples, exist_ok=True)
+            for (ver, _), path in samples.items():
+                dst = os.path.join(a.collect_samples, f"v{ver}_{os.path.basename(path)}")
+                shutil.copy2(path, dst)
+            print(f"copied {len(samples)} sample(s) of the failing kinds to {a.collect_samples}: commit them to the wiki repo's samples/ folder")
 
 
 def main():
@@ -614,8 +706,9 @@ def main():
     ap.add_argument("--all-lods", action="store_true", help="keep geometry, memory and other non-visual LODs too")
     ap.add_argument("--max-size", type=int, default=MAX_FILE_MB, help=f"skip files bigger than this many MB (default {MAX_FILE_MB})")
     ap.add_argument("--max-lod", type=int, default=MAX_LOD_MB, help=f"skip a single LOD bigger than this many MB (default {MAX_LOD_MB})")
-    ap.add_argument("--sleep", type=float, default=0.25, help="seconds to pause between files (default 0.25)")
+    ap.add_argument("--sleep", type=float, default=0.05, help="seconds to pause between files (default 0.05)")
     ap.add_argument("--limit", type=int, help="stop after this many conversions (for a trial run)")
+    ap.add_argument("--collect-samples", metavar="DIR", help="copy the smallest failing file of each version/error into DIR")
     a = ap.parse_args()
     if not os.path.exists(a.src):
         sys.exit(f"not found: {a.src}\n(in Git Bash, quote Windows paths or use forward slashes: \"F:\\PureZ\\PureZ-render\" or F:/PureZ/PureZ-render)")
