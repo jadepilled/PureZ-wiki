@@ -209,6 +209,8 @@ def image_bytes(img, fmt="png", lossless=True, quality=90, png_level=6):
     """Encode a texture for a GLB. png: lossless, png_level 1 is fast and big, 9 small and slow.
     webp: lossless by default (30-50% smaller than PNG), or lossy at `quality` when lossless is False."""
     b = io.BytesIO()
+    if img.mode not in ("RGB", "RGBA", "L"):
+        img = img.convert("RGBA")
     if fmt == "webp":
         img.save(b, "WEBP", lossless=lossless, quality=quality if not lossless else 100, method=4)
     else:
@@ -279,7 +281,7 @@ class Glb:
     def accessor(self, values, kind, comp=5126, target=34962, minmax=False):
         """comp: 5126 float, 5125 uint32, 5123 uint16, 5120 int8 normalized (VEC3, padded to 4 bytes)."""
         width = {"VEC3": 3, "VEC2": 2, "SCALAR": 1}[kind]
-        flat = values
+        flat = [v if math.isfinite(v) else 0.0 for v in values] if comp != 5125 else values   # NaN normals/UVs from degenerate faces
         stride = None
         if comp == 5120:
             data = struct.pack("<" + "bbbx" * (len(flat) // 3), *(max(-127, min(127, round(v * 127))) for v in flat))
@@ -317,10 +319,17 @@ class Glb:
         if t["max_size"] and max(img.size) > t["max_size"]:
             f = t["max_size"] / max(img.size)
             img = img.resize((max(1, round(img.width * f)), max(1, round(img.height * f))), Image.LANCZOS)
-        data = image_bytes(img, t["fmt"], t["lossless"], t["quality"], t["png_level"])
-        self.gltf["images"].append({"bufferView": self.view(data), "mimeType": f"image/{t['fmt']}"})
+        fmt = t["fmt"]
+        try:
+            data = image_bytes(img, fmt, t["lossless"], t["quality"], t["png_level"])
+        except Exception as e:   # Pillow built without WebP: fall back to PNG for this image
+            if fmt == "png":
+                raise
+            print(f"  webp failed ({e}); storing PNG", file=sys.stderr)
+            fmt, data = "png", image_bytes(img, "png", png_level=6)
+        self.gltf["images"].append({"bufferView": self.view(data), "mimeType": f"image/{fmt}"})
         src = len(self.gltf["images"]) - 1
-        if t["fmt"] == "webp":
+        if fmt == "webp":
             self.extension("EXT_texture_webp", required=True)
             self.gltf["textures"].append({"sampler": 0, "extensions": {"EXT_texture_webp": {"source": src}}})
         else:
@@ -358,7 +367,9 @@ def dot(a, b):
 
 
 def norm(v):
-    l = math.sqrt(dot(v, v)) or 1.0
+    l = math.sqrt(dot(v, v))
+    if not l or not math.isfinite(l):
+        return (0.0, 0.0, 1.0)
     return (v[0] / l, v[1] / l, v[2] / l)
 
 

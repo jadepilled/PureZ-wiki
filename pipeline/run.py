@@ -81,6 +81,7 @@ class Bar:
 def run_stage(cmd, stage, total_rx, line_rx, log_path, cwd=None):
     """Run a subprocess, parse its lines for the total and per-item results, draw the bar, keep the full log."""
     bar = None
+    failures = []
     with open(log_path, "a", encoding="utf-8") as log:
         log.write(f"--- {time.strftime('%Y-%m-%d %H:%M:%S')} {' '.join(cmd)}\n")
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8",
@@ -96,11 +97,21 @@ def run_stage(cmd, stage, total_rx, line_rx, log_path, cwd=None):
             m = line_rx.search(line)
             if m and bar is not None:
                 bar.step(m.group("status") or "rendered", m.group("item"))
+                if (m.group("status") or "") in ("failed", "FAILED"):
+                    failures.append(m.group("item") if m.group("status") == "failed" else line)
             elif bar is None and line.strip() and not line.startswith(("Blender", "Read", "Color management")):
                 print(paint(line, "90"))
         code = proc.wait()
     if bar:
         bar.draw(final=True)
+        if failures:   # the distinct reasons, most common first, so a systematic problem is obvious at once
+            reasons = {}
+            for f in failures:
+                reason = re.sub(r"^\S+:\s*", "", f.split("] ", 1)[-1])
+                reasons[reason] = reasons.get(reason, 0) + 1
+            print(paint(f"  {len(failures)} failed:", "31"))
+            for reason, n in sorted(reasons.items(), key=lambda kv: -kv[1])[:6]:
+                print(paint(f"    {n:4d} x {reason[:150]}", "31"))
     return code, bar
 
 
@@ -126,7 +137,7 @@ def main():
     if not a.skip_convert:
         cmd = [sys.executable, os.path.join(HERE, "layout.py"), "--render", a.render, "--work", a.work] + (["--only", a.only] if a.only else []) + (["--all"] if a.all else [])
         code, bar = run_stage(cmd, "Convert", re.compile(r"^(\d+) classes to prepare"),
-                              re.compile(r"^(?P<status>ok|missing|odol|failed)\s+(?P<item>.+)$"), os.path.join(a.work, "layout.log"))
+                              re.compile(r"^(?P<status>ok|missing|odol|failed|empty)\s+(?P<item>.+)$"), os.path.join(a.work, "layout.log"))
         if code or not bar:
             sys.exit(f"convert stage failed (exit {code}); see {os.path.join(a.work, 'layout.log')}")
         if bar.counts.get("missing"):

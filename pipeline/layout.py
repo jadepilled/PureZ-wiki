@@ -14,7 +14,7 @@ the attachment PureZ spawns there most often (buttstock, handguard and magazine 
 
 Binarised (ODOL) models are decoded on the fly by odol.py, so the render folder can be used as is.
 """
-import argparse, glob, json, os, re, sys
+import argparse, glob, json, os, re, sys, traceback
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -208,7 +208,9 @@ def main():
         try:
             lod = p3d.best_lod(p3d.read_p3d(src))
             if not lod:
-                raise ValueError("no visual LOD")
+                stats["empty"] = stats.get("empty", 0) + 1
+                print(f"empty    {cls}: {model} has no visual geometry ({os.path.getsize(src)} bytes)", flush=True)
+                continue
             parts, fitted = [], []
             if it["category"] == "weapons" and slots and c.get("attachments"):
                 for att in pick_attachments(cls, c, lod, cfg, by_model, spawnable, slots):
@@ -241,7 +243,8 @@ def main():
             print(f"odol     {cls}: {e}", flush=True)
         except Exception as e:
             stats["failed"] += 1
-            print(f"failed   {cls}: {e}", flush=True)
+            tb = traceback.extract_tb(e.__traceback__)[-1]
+            print(f"failed   {cls}: {type(e).__name__}: {e}  [{os.path.basename(tb.filename)}:{tb.lineno} in {tb.name}]", flush=True)
     print(stats)
     print(f"work tree: {a.work}  (next: pipeline\\render.bat, or blender -b --factory-startup -P pipeline/blender_render.py -- --work {a.work} --out media)")
 
