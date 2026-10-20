@@ -8,8 +8,15 @@ Options: --only <Class>, --size 1600x1200, --samples 96, --engine CYCLES|EEVEE, 
 """
 import argparse, json, math, os, sys
 
-import bpy
-from mathutils import Vector
+try:
+    import bpy
+    from mathutils import Vector
+except ModuleNotFoundError:
+    sys.exit("This script runs inside Blender, not plain Python (bpy is Blender's own module, not a pip package).\n"
+             "Run it as:\n"
+             "  blender -b -P pipeline/blender_render.py -- --work pipeline/work --out media --gpu\n"
+             "or on Windows with the full path, e.g.\n"
+             "  \"C:/Program Files/Blender Foundation/Blender 4.2/blender.exe\" -b -P pipeline/blender_render.py -- --work pipeline/work --out media --gpu")
 
 # Camera presets per wiki category: (azimuth degrees around +Y from the model's front, elevation, lens mm)
 # Models face glTF +Z. A model whose long axis is X instead (DayZ guns) gets the azimuth turned by 90.
