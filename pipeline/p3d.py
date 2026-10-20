@@ -2,10 +2,11 @@
 
     python pipeline/p3d.py <model.p3d> <out.glb> --root <render folder> [--hidden camo=path.paa ...]
 
-Reads MLOD (editable) P3D. Binarised ODOL models, which the game ships, are detected and
-reported; their decoder is pending sample files. The best visual LOD is exported with its
-textures embedded: colour (_co/_ca), normal (_nohq) and specular/gloss (_smdi -> glTF
-metallic-roughness). `--hidden` applies config hiddenSelectionsTextures for colour variants.
+Reads MLOD (editable) P3D; the game ships binarised ODOL models, so debinarise them first with
+pipeline/deodol.py. The best visual LOD is exported with its textures embedded: colour (_co/_ca),
+normal (_nohq) and specular/gloss (_smdi -> glTF metallic-roughness). `--hidden` applies config
+hiddenSelectionsTextures for colour variants. Proxy triangles (attachment slots) are read by
+proxies() and never drawn; layout.py fills them with the attachments a weapon spawns with.
 """
 import argparse, io, json, math, os, re, struct, sys
 
@@ -106,8 +107,57 @@ def read_p3d(path):
         return read_mlod(data)
     if sig == b"ODOL":
         ver = struct.unpack_from("<I", data, 4)[0]
-        raise NotImplementedError(f"binarised ODOL v{ver} model; ODOL decoding is pending sample files")
+        raise NotImplementedError(f"binarised ODOL v{ver} model; run pipeline/deodol.py over the render folder first")
     raise ValueError(f"unknown P3D signature {sig!r}")
+
+
+def proxies(lod):
+    """Proxy placeholders in a LOD: [{name, path, index, faces, origin, frame}]. The game swaps each
+    for the model in the matching slot; path is the placeholder model (dz\\weapons\\...\\x, no .p3d)."""
+    out = []
+    for name, faces in lod.selections.items():
+        m = re.match(r"proxy:(.+?)(?:\.(\d+))?$", name)
+        if not m or not faces:
+            continue
+        verts = [lod.points[v[0]] for i in sorted(faces) for v in lod.faces[i]["v"]]
+        origin, frame = proxy_frame(verts[:3]) if len(verts) >= 3 else ((0.0, 0.0, 0.0), None)
+        out.append({"name": name, "path": m.group(1).replace("/", "\\").lstrip("\\"), "index": int(m.group(2) or 1),
+                    "faces": set(faces), "origin": origin, "frame": frame})
+    return out
+
+
+def proxy_frame(tri):
+    """Frame of a proxy triangle: the right-angle vertex is the origin; the longer leg points forward
+    (+Z), the shorter one up (+Y). Returns (origin, [X, Y, Z]) in model space (Arma, left-handed)."""
+    best = None
+    for i in range(3):
+        o, a, b = tri[i], tri[(i + 1) % 3], tri[(i + 2) % 3]
+        la, lb = sub(a, o), sub(b, o)
+        c = abs(dot(norm(la), norm(lb)))
+        if best is None or c < best[0]:
+            best = (c, o, la, lb)
+    _, o, la, lb = best
+    z, y = (la, lb) if dot(la, la) >= dot(lb, lb) else (lb, la)
+    z, y = norm(z), norm(y)
+    x = norm(cross(y, z))
+    y = norm(cross(z, x))
+    return o, [x, y, z]
+
+
+def apply_frame(p, origin, frame):
+    if frame is None:
+        return (p[0] + origin[0], p[1] + origin[1], p[2] + origin[2])
+    x, y, z = frame
+    return (origin[0] + p[0] * x[0] + p[1] * y[0] + p[2] * z[0],
+            origin[1] + p[0] * x[1] + p[1] * y[1] + p[2] * z[1],
+            origin[2] + p[0] * x[2] + p[1] * y[2] + p[2] * z[2])
+
+
+def rotate(p, frame):
+    if frame is None:
+        return p
+    x, y, z = frame
+    return (p[0] * x[0] + p[1] * y[0] + p[2] * z[0], p[0] * x[1] + p[1] * y[1] + p[2] * z[1], p[0] * x[2] + p[1] * y[2] + p[2] * z[2])
 
 
 def best_lod(lods):
@@ -254,53 +304,65 @@ def norm(v):
     return (v[0] / l, v[1] / l, v[2] / l)
 
 
-def export(lod, out, files, hidden=None, materials_override=None):
-    """hidden: {selection name: texture path} from hiddenSelectionsTextures."""
-    hidden = {k.lower(): v for k, v in (hidden or {}).items()}
-    face_tex = [f["tex"] for f in lod.faces]
-    face_mat = [f["mat"] for f in lod.faces]
-    for sel, tex in hidden.items():
-        for i in lod.selections.get(sel, ()):
-            face_tex[i] = tex
-            if materials_override and sel in materials_override:
-                face_mat[i] = materials_override[sel]
-
-    # Arma is left-handed with +Z forward: mirror X to keep the model's front at glTF +Z
-    pts = [(-x, y, z) for x, y, z in lod.points]
-    nrm = [(-x, y, z) for x, y, z in lod.normals]
-
-    # Some exporters store inward normals: compare with geometric normals and flip if needed
-    agree = 0.0
-    for f in lod.faces:
-        v = f["v"]
-        if len(v) < 3 or not lod.normals:
-            continue
-        g = norm(cross(sub(pts[v[1][0]], pts[v[0][0]]), sub(pts[v[2][0]], pts[v[0][0]])))
-        agree += dot(g, nrm[v[0][1]])
-    flip_normals = agree < 0
-
-    groups = {}
-    for i, f in enumerate(lod.faces):
-        groups.setdefault((face_tex[i], face_mat[i]), []).append(f)
+def export(lod, out, files, hidden=None, materials_override=None, parts=None):
+    """Write a GLB. hidden: {selection: texture} from hiddenSelectionsTextures.
+    parts: attachments to merge in, [{"lod", "hidden", "mats", "origin", "frame", "name"}], each placed
+    at its proxy's origin (and frame, when given) in the main model's space."""
+    items = [{"lod": lod, "hidden": hidden, "mats": materials_override, "origin": (0.0, 0.0, 0.0), "frame": None, "name": "model"}]
+    items += parts or []
+    groups, total_faces = {}, 0
+    for it in items:
+        L = it["lod"]
+        hid = {k.lower(): v for k, v in (it.get("hidden") or {}).items()}
+        mats = {k.lower(): v for k, v in (it.get("mats") or {}).items()}
+        face_tex = [f["tex"] for f in L.faces]
+        face_mat = [f["mat"] for f in L.faces]
+        for sel, tex in hid.items():
+            for i in L.selections.get(sel, ()):
+                face_tex[i] = tex
+                if sel in mats:
+                    face_mat[i] = mats[sel]
+        skip = set()
+        for px in proxies(L):
+            skip |= px["faces"]
+        # Arma is left-handed with +Z forward: mirror X to keep the model's front at glTF +Z
+        pts = [apply_frame(p, it["origin"], it["frame"]) for p in L.points]
+        pts = [(-x, y, z) for x, y, z in pts]
+        nrm = [rotate(n, it["frame"]) for n in L.normals]
+        nrm = [(-x, y, z) for x, y, z in nrm]
+        # Some exporters store inward normals: compare with geometric normals and flip if needed
+        agree = 0.0
+        for f in L.faces:
+            v = f["v"]
+            if len(v) < 3 or not L.normals:
+                continue
+            g = norm(cross(sub(pts[v[1][0]], pts[v[0][0]]), sub(pts[v[2][0]], pts[v[0][0]])))
+            agree += dot(g, nrm[v[0][1]])
+        flip = agree < 0
+        for i, f in enumerate(L.faces):
+            if i in skip:
+                continue
+            groups.setdefault((face_tex[i], face_mat[i]), []).append((f, pts, nrm, flip, bool(L.normals)))
+            total_faces += 1
 
     glb, cache = Glb(), {}
     for (tex, mat), faces in groups.items():
         P, N, T, idx, seen = [], [], [], [], {}
-        for f in faces:
+        for f, pts, nrm, flip_normals, has_normals in faces:
             v = f["v"]
             tris = [(0, 1, 2)] if len(v) == 3 else [(0, 1, 2), (0, 2, 3)]
             for tri in tris:
                 corners = [v[k] for k in tri]
                 g = norm(cross(sub(pts[corners[1][0]], pts[corners[0][0]]), sub(pts[corners[2][0]], pts[corners[0][0]])))
-                n0 = nrm[corners[0][1]] if lod.normals else g
+                n0 = nrm[corners[0][1]] if has_normals else g
                 n0 = (-n0[0], -n0[1], -n0[2]) if flip_normals else n0
                 if dot(g, n0) < 0:  # make winding agree with the normal (counter-clockwise front)
                     corners = [corners[0], corners[2], corners[1]]
                 for pi, ni, u, vv in corners:
-                    n = nrm[ni] if lod.normals else g
+                    n = nrm[ni] if has_normals else g
                     if flip_normals:
                         n = (-n[0], -n[1], -n[2])
-                    key = (pi, ni, round(u, 6), round(vv, 6))
+                    key = (id(pts), pi, ni, round(u, 6), round(vv, 6))
                     if key not in seen:
                         seen[key] = len(P) // 3
                         P += pts[pi]
@@ -332,7 +394,7 @@ def export(lod, out, files, hidden=None, materials_override=None):
         prim["material"] = len(glb.gltf["materials"]) - 1
         glb.gltf["meshes"][0]["primitives"].append(prim)
     glb.save(out)
-    return {"faces": len(lod.faces), "materials": len(groups), "flippedNormals": flip_normals}
+    return {"faces": total_faces, "materials": len(groups), "parts": [it["name"] for it in items[1:]]}
 
 
 def main():
