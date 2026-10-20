@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "_macros.html" import crumbs, ingredient %}
+{% block main %}
+{{ crumbs(cat, page) }}
+<header class="item-head">
+  <h1>{{ page.title }}</h1>
+  <p class="lead">Any of these {{ groupMembers }} items counts as a {{ page.title | lower }} in a recipe.</p>
+</header>
+<ul class="list">
+  {% for l in groupItems | sort(attribute="title") %}<li><a href="{{ l.url }}"><span>{{ l.title }}</span></a></li>{% endfor %}
+</ul>
+{% endblock %}

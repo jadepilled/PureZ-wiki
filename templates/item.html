@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import crumbs, itemlink, condition, stat %}
+{% from "_macros.html" import crumbs, itemlink, condition, stat, recipe, icon %}
 {% block head %}
 {% if item.media.model %}<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>{% endif %}
 {% endblock %}
@@ -10,11 +10,7 @@
   <h1>{{ page.title }}</h1>
   <p class="meta">
     <code class="cls" title="Class name">{{ item.cls }}</code>
-    {% if L %}
-      {% for t in L.tiers %}<span class="chip">Tier {{ t }}</span>{% endfor %}
-      {% if L.unique %}<span class="chip red">Unique</span>{% endif %}
-      {% if not L.spawns %}<span class="chip">Doesn't spawn</span>{% endif %}
-    {% endif %}
+    {% if L and not (L | selectattr("spawns") | list) %}<span class="chip">Not in the PureZ loot tables</span>{% endif %}
   </p>
   {% if item.description %}<p class="lead">{{ item.description }}</p>{% endif %}
   {% if item.variants %}<p class="chips variants">{% for v in item.variants %}<span class="chip" title="{{ v.cls }}">{{ v.label }}</span>{% endfor %}</p>{% endif %}
@@ -36,11 +32,12 @@
   <dl class="facts">
     {% if item.specs %}{% for label, val in item.specs %}{{ stat(label, val) }}{% endfor %}{% endif %}
     {% if W and W.modes %}{{ stat("Rate of fire", W.modes | map(attribute="rpm") | reject("none") | max | num ~ " rpm") }}{% endif %}
-    {% if L and L.spawns %}{{ stat("On the map", L.nominal ~ (" item" if L.nominal == 1 else " items")) }}{% endif %}
-    {% if L and L.quant %}{{ stat("Spawns filled", L.quant[0] ~ "–" ~ L.quant[1] ~ "%") }}{% endif %}
-    {% if V %}{{ stat("On the map", V.nominal ~ " vehicles") }}{% endif %}
-    {% if F.worn %}{{ stat("Worn on", F.worn) }}{% endif %}
-    {% if F.capacity %}{{ stat("Holds", F.capacity) }}{% endif %}
+    {% if F.slot %}{{ stat("Slot", F.slot) }}{% endif %}
+    {% if F.insulation %}<div class="stat"><dt>Insulation</dt><dd>{{ F.insulation.value }} <small class="lvl lvl-{{ F.insulation.level | lower }}">{{ F.insulation.level }}</small></dd></div>{% endif %}
+    {% if F.absorbency %}{{ stat("Absorbs water", F.absorbency) }}{% endif %}
+    {% if F.capacity %}{{ stat("Holds", F.capacity, (F.liquids | join(", ")) if F.liquids else none) }}{% endif %}
+    {% if F.cargo %}{{ stat("Cargo", F.cargo) }}{% endif %}
+    {% if F.repair %}{{ stat("Repair with", F.repair | map(attribute="title") | join(", ")) }}{% endif %}
     {% if F.zoom %}{{ stat("Zoom", F.zoom) }}{% endif %}
     {% if F.fuel %}{{ stat("Fuel tank", F.fuel) }}{% endif %}
     {% if F.roundWeight %}{{ stat("Per round", F.roundWeight) }}{% endif %}
@@ -167,7 +164,16 @@
 </details>
 {% endif %}
 
-{% if F.nutrition %}
+{% if F.stages %}
+<details class="block" open>
+  <summary><h2>Nutrition</h2></summary>
+  <table class="data">
+    <thead><tr><th>State</th><th class="n">Energy</th><th class="n">Water</th><th class="n">Nutrition</th><th class="n">Fills</th><th class="n">Toxicity</th></tr></thead>
+    <tbody>{% for r in F.stages %}<tr{% if r.stage == "Rotten" or r.stage == "Burned" %} class="muted"{% endif %}><td>{{ r.stage }}</td><td class="n">{{ r.energy | num }} kcal</td><td class="n">{{ r.water | num }} ml</td><td class="n">×{{ r.index | num }}</td><td class="n">×{{ r.fullness | num }}</td><td class="n">{{ r.toxicity | num }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <p class="note">Per 100 g eaten. Raw meat and rotten food can carry disease.</p>
+</details>
+{% elif F.nutrition %}
 <details class="block" open>
   <summary><h2>Nutrition</h2></summary>
   <dl class="facts row">{% for label, v in F.nutrition %}{{ stat(label, v) }}{% endfor %}</dl>
@@ -191,66 +197,62 @@
 </details>
 {% endif %}
 
-{% if L and L.attachments %}
-<details class="block" open>
-  <summary><h2>Spawns with</h2></summary>
-  <table class="data">
-    <tbody>
-    {% for g in L.attachments %}
-      <tr>
-        <td class="n w-chance">{{ g.chance | pct }}</td>
-        <td>{% for i in g["items"] %}{{ itemlink(i) }}{% if g["items"] | length > 1 %} <span class="muted">{{ i.share | pct }}</span>{% endif %}{% if not loop.last %}<span class="sep">·</span>{% endif %}{% endfor %}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-</details>
-{% endif %}
-
 {% if L %}
-<details class="block" open>
-  <summary><h2>Loot</h2></summary>
-  <div class="loot">
-    <div>
-      <h3>Condition</h3>
-      {{ condition(L.condition) }}
-    </div>
-    <div>
-      <h3>Found in</h3>
-      <p class="chips">{% for u in L.usage %}<span class="chip">{{ u | humanize }}</span>{% else %}<span class="muted">Not in buildings</span>{% endfor %}</p>
-      {% if item.mapUrl %}<p class="maplink"><a href="{{ item.mapUrl }}">Show on the map</a></p>{% endif %}
-    </div>
+<details class="block">
+  <summary><h2>On PureZ servers</h2></summary>
+  <p class="note">Loot tables differ per map and change with updates. Figures are from the current PureZ mission files.</p>
+  {% for m in L %}
+  <section class="server">
+    <h3>{{ m.name }}{% if not m.spawns %} <span class="muted">not spawning</span>{% endif %}</h3>
+    {% if m.spawns %}
     <dl class="facts row">
-      {% if F.repair %}{{ stat("Repair with", F.repair | map(attribute="title") | join(", ")) }}{% endif %}
-      {{ stat("Despawns after", L.lifetime | duration) }}
-      {% if L.restock %}{{ stat("Restock", L.restock | duration) }}{% endif %}
-      {{ stat("Restocks below", L.min ~ (" item" if L.min == 1 else " items")) }}
+      {{ stat("In the world", m.nominal ~ (" item" if m.nominal == 1 else " items")) }}
+      {% if m.tiers %}{{ stat("Tiers", m.tiers | join(", ")) }}{% endif %}
+      {% if m.quant %}{{ stat("Spawns filled", m.quant[0] ~ "–" ~ m.quant[1] ~ "%") }}{% endif %}
+      {{ stat("Despawns after", m.lifetime | duration) }}
+      {% if m.restock %}{{ stat("Restock", m.restock | duration) }}{% endif %}
+      <div class="stat"><dt>Condition</dt><dd class="cond-dd">{{ condition(m.condition) }}</dd></div>
     </dl>
-  </div>
-  {% if L.carried %}
-  <h3>Worn or carried by infected</h3>
-  <ul class="carried">{% for g, c in L.carried %}<li><span>{{ g }}</span><b>{{ c | pct(1) }}</b></li>{% endfor %}</ul>
-  {% endif %}
+    <p class="chips">{% for u in m.usage %}<span class="chip">{{ u | humanize }}</span>{% else %}<span class="muted">Not in buildings</span>{% endfor %}{% if m.unique %}<span class="chip red">Unique</span>{% endif %}</p>
+    {% if m.mapUrl %}<p class="maplink"><a href="{{ m.mapUrl }}">Show on the map</a></p>{% endif %}
+    {% if m.attachments %}
+    <h4>Spawns with</h4>
+    <table class="data"><tbody>{% for g in m.attachments %}<tr><td class="n w-chance">{{ g.chance | pct }}</td><td>{% for i in g["items"] %}{{ itemlink(i) }}{% if g["items"] | length > 1 %} <span class="muted">{{ i.share | pct }}</span>{% endif %}{% if not loop.last %}<span class="sep">·</span>{% endif %}{% endfor %}</td></tr>{% endfor %}</tbody></table>
+    {% endif %}
+    {% if m.carried %}
+    <h4>Worn or carried by infected</h4>
+    <ul class="carried">{% for g, c in m.carried %}<li><span>{{ g }}</span><b>{{ c | pct(1) }}</b></li>{% endfor %}</ul>
+    {% endif %}
+    {% endif %}
+  </section>
+  {% endfor %}
 </details>
 {% endif %}
 
 {% if V %}
 <details class="block" open>
-  <summary><h2>Spawning</h2></summary>
-  <dl class="facts row">
-    {{ stat("Spawn points", V.positions ~ " locations") }}
-    {{ stat("Condition", V.condition.label) }}
-  </dl>
-  {% if V.variants %}<h3>Other colours</h3><p class="chips">{% for v in V.variants %}<span class="chip">{{ itemlink(v) }}</span>{% endfor %}</p>{% endif %}
+  <summary><h2>Parts</h2></summary>
   {% if F.parts %}
-  <h3>Parts</h3>
-  <ul class="links cols">{% for p in F.parts %}<li>{{ itemlink(p) }}{% if p.n > 1 %} <span class="muted">×{{ p.n }}</span>{% endif %}</li>{% endfor %}</ul>
-  {% endif %}
-  {% if V.parts %}
-  <h3>Spawns fitted with</h3>
-  <ul class="links cols">{% for p in V.parts %}<li>{{ itemlink(p) }}{% if p.n > 1 %} <span class="muted">×{{ p.n }}</span>{% endif %}{% if p.chance < 1 %} <span class="muted">{{ p.chance | pct }}</span>{% endif %}</li>{% endfor %}</ul>
+  <ul class="links cols">{% for p in F.parts %}<li><a href="{{ p.url }}">{{ p.title }}</a>{% if p.n > 1 %} <span class="muted">×{{ p.n }}</span>{% endif %}{% if p.alternatives %} <span class="muted">or {% for a in p.alternatives %}<a href="{{ a.url }}">{{ a.title }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</span>{% endif %}</li>{% endfor %}</ul>
   {% endif %}
 </details>
+{% set VS = V | selectattr("map") | list %}
+{% if VS %}
+<details class="block">
+  <summary><h2>On PureZ servers</h2></summary>
+  {% for v in VS %}
+  <section class="server">
+    <h3>{{ v.name }}</h3>
+    <dl class="facts row">
+      {{ stat("Vehicles", v.nominal) }}
+      {{ stat("Spawn points", v.positions) }}
+      <div class="stat"><dt>Condition</dt><dd class="cond-dd">{{ condition(v.condition) }}</dd></div>
+    </dl>
+    {% if v.parts %}<p class="fitted">Spawns fitted with {% for p in v.parts %}{{ itemlink(p) }}{% if p.n > 1 %} ×{{ p.n }}{% endif %}{% if p.chance < 1 %} <span class="muted">{{ p.chance | pct }}</span>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
+  </section>
+  {% endfor %}
+</details>
+{% endif %}
 {% endif %}
 
 {% if item.medical %}
@@ -278,14 +280,15 @@
   <summary><h2>Crafting</h2></summary>
   {% for label, rs in (("Made from", item.recipes.made), ("Used in", item.recipes.used)) %}{% if rs %}
   <h3>{{ label }}</h3>
-  <ul class="recipes compact">
-    {% for r in rs %}<li>
-      <span class="rname">{{ r.title }}</span>
-      {% set ings = r.ingredients | reject("equalto", []) | list %}{% for ing in ings %}{% set alts = ing | reject("equalto", item.cls) | list %}{% if item.cls in ing %}<span class="ing this">{{ page.title }}</span>{% else %}<span class="ing">{{ (alts[:3] | map("humanize") | join(" / ")) ~ (" + " ~ (alts | length - 3) ~ " more" if alts | length > 3 else "") }}</span>{% endif %}{% if not loop.last %}<span class="plus">+</span>{% endif %}{% endfor %}
-      {% if r.results %}<span class="arrow">→</span><span class="res">{{ r.results | map("humanize") | join(", ") }}</span>{% endif %}
-    </li>{% endfor %}
-  </ul>
+  <ul class="recipes">{% for r in rs %}{{ recipe(r) }}{% endfor %}</ul>
   {% endif %}{% endfor %}
+</details>
+{% endif %}
+
+{% if F.fitsVehicles %}
+<details class="block" open>
+  <summary><h2>Fits</h2></summary>
+  <ul class="links">{% for i in F.fitsVehicles %}<li>{{ itemlink(i) }}</li>{% endfor %}</ul>
 </details>
 {% endif %}
 

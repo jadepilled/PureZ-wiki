@@ -6,9 +6,30 @@
 
 {% macro condition(c, label=None) %}
 <div class="cond" aria-label="Spawn condition: {{ c.label }}">
-  {% for s in c.levels %}<span class="{{ 'on' if s.on }}" title="{{ s.name }}"></span>{% endfor %}
+  {% for s in c.levels %}<span class="{{ 'on ' ~ s.cls if s.on }}" title="{{ s.name }}"></span>{% endfor %}
 </div>
-<p class="cond-label">{{ c.label }}{% if label %} <span class="muted">{{ label }}</span>{% endif %}</p>
+<p class="cond-label {{ c.cls }}">{{ c.label }}{% if label %} <span class="muted">{{ label }}</span>{% endif %}</p>
+{% endmacro %}
+
+{% macro icon(key) %}<svg class="ic" aria-hidden="true"><use href="#i-{{ key }}"/></svg>{% endmacro %}
+
+{% macro ingredient(l) %}<span class="ing{% if l.this %} this{% endif %}">{{ icon(l.icon) }}{% if l.url %}<a href="{{ l.url }}">{{ l.title }}</a>{% else %}<span title="{{ l.cls }}">{{ l.title }}</span>{% endif %}</span>{% endmacro %}
+
+{% macro recipe(r) %}
+<li class="recipe" data-text="{{ (r.title ~ ' ' ~ (r.slots | map(attribute='items') | sum(start=[]) | map(attribute='title') | join(' ')) ~ ' ' ~ (r.slots | map(attribute='group') | select | join(' ')) ~ ' ' ~ (r.results | map(attribute='title') | join(' '))) | lower }}">
+  <h4>{{ r.title }}</h4>
+  <div class="steps">
+    {% for s in r.slots %}
+    <div class="slot{% if s.hasThis %} has-this{% endif %}">
+      {% if s.group %}<a class="group" href="{{ s.groupUrl }}"{% if s.groupNote %} title="{{ s.groupNote }}"{% endif %}>{{ icon("knife") }}{{ s.group }}{% if s.groupNote %}<sup>*</sup>{% endif %}</a>{% endif %}
+      {% for l in s["items"][:4] %}{{ ingredient(l) }}{% endfor %}
+      {% if s["items"] | length > 4 %}<span class="more" title="{{ s['items'][4:] | map(attribute='title') | join(', ') }}">+{{ s["items"] | length - 4 }} more</span>{% endif %}
+    </div>
+    {% if not loop.last %}<span class="op">+</span>{% endif %}
+    {% endfor %}
+    {% if r.results %}<span class="op">→</span><div class="slot result">{% for l in r.results %}{{ ingredient(l) }}{% endfor %}</div>{% endif %}
+  </div>
+</li>
 {% endmacro %}
 
 {% macro stat(label, value, sub=None) %}

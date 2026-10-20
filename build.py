@@ -73,11 +73,32 @@ GAMEPLAY_LABELS = [
 ]
 
 HEALTH_LEVELS = [("Pristine", 0.0, 0.3), ("Worn", 0.3, 0.5), ("Damaged", 0.5, 0.7), ("Badly damaged", 0.7, 1.0)]
+HEALTH_CLASS = {"Pristine": "c-pristine", "Worn": "c-worn", "Damaged": "c-damaged", "Badly damaged": "c-badly", "Ruined": "c-ruined"}
+# heat isolation bands from GameConstants.HEATISO_THRESHOLD_* and the inspect menu's labels
+INSULATION_LEVELS = [(0.2, "Worst"), (0.4, "Low"), (0.6, "Medium"), (0.8, "High"), (9.0, "Best")]
+LIQUIDS = [(512 | 1024 | 131072 | 524288 | 1048576 | 2097152 | 4194304, "water"), (262144, "salt water"), (2048, "vodka"), (4096, "beer"),
+           (8192, "gasoline"), (16384, "diesel"), (32768, "disinfectant"), (65536, "solution"), (256, "saline"), (255, "blood")]
+FOOD_STAGES = ["Raw", "Baked", "Boiled", "Dried", "Burned", "Rotten"]
+VEHICLE_BASES = {"CarScript", "MotorbikeScript", "BoatScript"}
+MELEE_NAME = re.compile(r"Axe|Hatchet|Machete|Knife|Bat$|Knuckles|Cleaver|Scimitar|Crowbar|SledgeHammer|Pickaxe|Pitchfork|Sickle|Tenderizer|Baton|Katana|Sword|Akinaka|Jambiya|HayHook|Iceaxe|Shovel$|Pipe$|Broom$")
+MISSIONS = [("nasdara", "PureZ Nasdara", "nasdara"), ("chernarus", "PureZ Chernarus", "chernarus")]   # (file id, label, map id on map.purez.gg)
+
+
+def insulation(v):
+    return next(label for limit, label in INSULATION_LEVELS if v <= limit)
+
+
+def liquids(mask):
+    out = []
+    for bits, name in LIQUIDS:
+        if mask & bits:
+            out.append(name)
+    return out
 
 REPAIR_KITS = {1: "WeaponCleaningKit", 2: "SewingKit", 3: "LeatherSewingKit", 4: "Whetstone", 5: "DuctTape",
                6: "TireRepairKit", 7: "ElectronicRepairKit", 8: "EpoxyPutty"}
-WEAR_SLOTS = {"body": "Jacket", "legs": "Pants", "feet": "Shoes", "headgear": "Hat or helmet", "mask": "Face",
-              "eyewear": "Eyes", "gloves": "Gloves", "back": "Backpack", "vest": "Vest", "hips": "Belt", "armband": "Armband",
+WEAR_SLOTS = {"body": "Top", "legs": "Pants", "feet": "Shoes", "headgear": "Head", "mask": "Face",
+              "eyewear": "Eyes", "gloves": "Gloves", "back": "Back", "vest": "Vest", "hips": "Belt", "armband": "Arm",
               "shoulder": "Shoulder", "melee": "Melee", "pistol": "Holster", "bow": "Shoulder"}
 ATTACH_GROUPS = [("optic", "Optics"), ("muzzle", "Muzzle"), ("suppressor", "Muzzle"), ("buttstock", "Buttstock"),
                  ("handguard", "Handguard"), ("flashlight", "Light"), ("bayonet", "Bayonet"), ("wrap", "Wrap"),
@@ -146,10 +167,14 @@ CLOTHING_NAME = re.compile(r"(?i)hat$|cap$|helmet|beanie|beret|hood$|boots|shoes
 GEAR_OTHER = re.compile(r"^Bear_|Teddy|Toy|Doll|Leaflet|Paper$|Map$")
 
 
-def wiki_category(cls, t, slots=()):
+def wiki_category(cls, t, slots=(), vehicle_slots=frozenset()):
     c = t.get("category")
+    if any(sl.lower() in vehicle_slots for sl in slots):
+        return "vehicles"
     if any(sl.lower() in CLOTHING_SLOTS for sl in slots) or (not slots and CLOTHING_NAME.search(family(cls))):
         return "clothing"
+    if c in ("tools", "weapons", "containers", None) and MELEE_NAME.search(family(cls)) and not re.search(r"Sheath|Holster|Box|Kit|Case", cls):
+        return "weapons"
     if c == "clothes":
         return "clothing"
     if c in ("food", "tools", "containers"):
@@ -181,17 +206,16 @@ SUBCATS = {
     "ammunition": ["Rifle rounds", "Pistol rounds", "Shotgun shells", "40mm grenades", "Bolts", "Other"],
     "attachments": ["Optics", "Magazines", "Suppressors", "Muzzle", "Buttstocks", "Handguards", "Bayonets", "Lights and night vision", "Other"],
     "clothing": ["Tops", "Pants", "Shoes", "Headgear", "Masks", "Eyewear", "Gloves", "Vests", "Backpacks", "Belts", "Armbands", "Other"],
-    "gear": ["Melee weapons", "Tools", "Containers", "Camping", "Electronics", "Base building", "Repair", "Vehicle parts", "Other"],
+    "gear": ["Tools", "Containers", "Camping", "Electronics", "Base building", "Repair", "Other"],
     "medical": ["Drugs", "Wound care", "Blood and IV", "Tests", "Other"],
     "food": ["Canned", "Drinks", "Fruit and vegetables", "Meat and fish", "Snacks and dry goods", "Seeds", "Other"],
-    "vehicles": ["Cars", "Trucks", "Motorbikes", "Boats", "Other"],
+    "vehicles": ["Cars", "Trucks", "Motorbikes", "Boats", "Parts", "Other"],
     "health": ["Diseases", "Guides"],
 }
 PISTOL_ROUNDS = {"Bullet_9x19", "Bullet_45ACP", "Bullet_380", "Bullet_22", "Bullet_357"}
 GEAR_PATTERNS = [
-    ("Melee weapons", r"Axe|Hatchet|Machete|Knife|Bat$|Knuckles|Cleaver|Scimitar|Crowbar|SledgeHammer|Pickaxe|Pitchfork|Sickle|Tenderizer|Baton|Katana|Sword"),
     ("Tools", r"Keys$|Handcuffs|Lockpick|CanOpener|Blowtorch|BearTrap|Broom|Hoe$|Lime$"),
-    ("Vehicle parts", r"CarBattery|TruckBattery|Radiator|SparkPlug|GlowPlug|Headlight|Wheel|LugWrench|CanisterGasoline|Door|Hood$|Trunk"),
+    ("Tools", r"LugWrench"),
     ("Repair", r"RepairKit|SewingKit|DuctTape|EpoxyPutty|Whetstone|CleaningKit|Pliers|Screwdriver|Wrench|Hammer$|Hacksaw|HandSaw"),
     ("Base building", r"NailBox|Nail|Wire|Lock$|Lock\d|Camonet|Flag_|Brick|MortarMix|MetalPlate|Netting|Rope|Fabric|Trowel|Shovel|Pipe$|Stone|Log$|Plank"),
     ("Camping", r"Tent|Stove|Lamp|Lighter|Matchbox|Pot$|FryingPan|Tripod|Gas(Canister|Stove)|Firewood|Roadflare|Chemlight|Canteen|Bottle|CookingStand|Flare"),
@@ -294,10 +318,21 @@ class Wiki:
     def __init__(self, preview, base=""):
         self.preview = preview
         self.base = base.rstrip("/")          # URL prefix when served from a subpath (github.io/<repo>)
-        self.mission = load_json("mission.json")
+        self.missions = []        # [(id, label, map id, data)] for every PureZ mission in data/missions
+        for mid, label, map_id in MISSIONS:
+            path = os.path.join(ROOT, "data", "missions", f"{mid}.json")
+            if os.path.exists(path):
+                with open(path, encoding="utf-8") as f:
+                    self.missions.append((mid, label, map_id, json.load(f)))
+        self.mission = self.missions[0][3] if self.missions else load_json("mission.json")
         self.scripts = load_json("scripts.json")
         self.configs = load_json("configs.json")
         self.purez = self.mission.get("purez", {})
+        # slots on vehicles that take parts (wheels, doors, batteries...), not the cargo hooks that take barrels and crates
+        self.vehicle_slots = {a.lower() for k, v in self.configs.get("vehicles", {}).items()
+                              if set(v.get("_lineage") or []) & VEHICLE_BASES for a in v.get("attachments") or []
+                              if not re.search(r"(?i)barrel|cargo|crate|material|canister|planks|sheets|logs", a)}
+        self.ingredient_groups = ingredient_groups(self.scripts.get("recipes", []))
         self.pages = []          # every routable page: dict(url, title, category, ...)
         self.by_class = {}       # class -> item page
         self.md = markdown.Markdown(extensions=["tables", "fenced_code", "sane_lists"])
@@ -331,7 +366,7 @@ class Wiki:
             if DEV_ITEM.search(c) or DEV_ITEM.search(self.title(c)):
                 continue
             l = self.link(c)
-            key = l["url"] or l["title"]
+            key = l["title"].strip().lower()
             if key in seen:
                 continue
             seen.add(key)
@@ -354,7 +389,9 @@ class Wiki:
         if cat == "weapons":
             if t.get("category") == "explosives" or re.search(r"Grenade|Mine|Explosive|Claymore", cls):
                 return "Explosives"
-            if sec != "weapons":   # melee, or a gun whose config pack isn't in the uploaded files
+            if MELEE_NAME.search(base) and sec != "weapons":
+                return "Melee"
+            if sec != "weapons":   # a gun whose config pack isn't in the uploaded files
                 return first_match(base, [("Melee", r"Baton|Knife|Akinaka|Jambiya|Sword|Scimitar|Machete"), ("Pistols", r"Glock|Luger|Longhorn|Derringer|Pistol|Revolver"),
                                           ("Submachine guns", r"MP18|MP5|UMP|PP19|Skorpion"), ("Sniper rifles", r"LeeEnfield|Mosin|SVD|SV98|SSG"),
                                           ("Assault rifles", r"SCAR|AK|M4|M16|FAMAS|AUG|FAL|Groza")], "Melee" if c.get("isMeleeWeapon") else "Other")
@@ -415,6 +452,8 @@ class Wiki:
         if cat == "food":
             return first_match(base, FOOD_PATTERNS)
         if cat == "vehicles":
+            if not (lineage & VEHICLE_BASES):
+                return "Parts"
             return first_match(cls, [("Trucks", r"Truck"), ("Motorbikes", r"Motorbike|Bike"), ("Boats", r"Boat")], "Cars")
         return None
 
@@ -432,26 +471,38 @@ class Wiki:
             out.append((l, slugify(l) if l else "", kids))
         return out
 
-    def loot(self, cls):
-        t = self.purez.get("types", {}).get(cls)
-        if not t:
-            return None
-        st = self.purez.get("spawnable", {}).get(cls) or {}
-        g = self.purez.get("globals", {})
-        dmg = st.get("damage") or [g.get("LootDamageMin", 0), g.get("LootDamageMax", 0.82)]
-        carried = defaultdict(list)
-        for zmb, chance in (self.mission.get("carriedBy", {}).get(cls) or {}).items():
-            carried[zombie_group(zmb)].append(chance)
-        return {
-            "nominal": t["nominal"], "min": t["min"], "lifetime": t["lifetime"], "restock": t["restock"],
-            "usage": t["usage"], "tiers": [x.replace("Tier", "") for x in t["value"] if x.startswith("Tier")],
-            "unique": "Unique" in t["value"],
-            "quant": [t["quantmin"], t["quantmax"]] if t["quantmin"] not in (None, -1) else None,
-            "condition": condition_bar(dmg),
-            "attachments": self.spawn_groups(st.get("groups", [])),
-            "carried": sorted(((k, max(v)) for k, v in carried.items()), key=lambda x: -x[1]),
-            "spawns": t["nominal"] > 0,
-        }
+    def loot(self, cls, members=None):
+        """Spawn data for each PureZ map the item is in the economy of: one entry per map."""
+        members = members or [cls]
+        out = []
+        for mid, label, map_id, m in self.missions:
+            pz = m.get("purez", {})
+            types = pz.get("types", {})
+            present = [v for v in members if v in types]
+            if not present:
+                continue
+            t = types[cls] if cls in types else types[present[0]]
+            st = pz.get("spawnable", {}).get(cls) or {}
+            g = pz.get("globals", {})
+            dmg = st.get("damage") or [g.get("LootDamageMin", 0), g.get("LootDamageMax", 0.82)]
+            carried = defaultdict(list)
+            for zmb, chance in (m.get("carriedBy", {}).get(cls) or {}).items():
+                carried[zombie_group(zmb)].append(chance)
+            nominal = sum((types[v]["nominal"] or 0) for v in present)
+            usage = sorted({u for v in present for u in (types[v]["usage"] or [])})
+            out.append({
+                "map": mid, "name": label, "nominal": nominal, "min": sum((types[v]["min"] or 0) for v in present),
+                "lifetime": t["lifetime"], "restock": t["restock"], "usage": usage,
+                "tiers": sorted({x.replace("Tier", "") for v in present for x in (types[v]["value"] or []) if x.startswith("Tier")}),
+                "unique": any("Unique" in (types[v]["value"] or []) for v in present),
+                "quant": [t["quantmin"], t["quantmax"]] if t["quantmin"] not in (None, -1) else None,
+                "condition": condition_bar(dmg),
+                "attachments": self.spawn_groups(st.get("groups", [])),
+                "carried": sorted(((k, max(v)) for k, v in carried.items()), key=lambda x: -x[1]),
+                "spawns": nominal > 0,
+                "mapUrl": f"{MAP_URL}#{map_id}?i={cls}&l=buildings" if nominal > 0 and usage else None,
+            })
+        return out
 
     def spawn_groups(self, groups):
         out = []
@@ -473,7 +524,7 @@ class Wiki:
             out["recoilClass"] = rec_cls
         if c:
             out["modes"] = [{"name": k, **v} for k, v in (c.get("_modes") or {}).items()]
-            out["magazines"] = [self.link(m) for m in (c.get("magazines") or [])]
+            out["magazines"] = self.links(c.get("magazines") or [])
             sounds = []
             for m in out["modes"]:
                 for set_name, samples in (m.get("sounds") or {}).items():
@@ -525,30 +576,94 @@ class Wiki:
     def recipes_for(self, cls):
         used, made = [], []
         for r in self.scripts.get("recipes", []):
-            r = r | {"title": recipe_title(r), "results": list(dict.fromkeys(r["results"]))}
             if any(cls in ing for ing in r["ingredients"]):
-                used.append(r)
+                used.append(self.recipe_view(r, cls))
             if cls in r["results"]:
-                made.append(r)
+                made.append(self.recipe_view(r, cls))
         key = lambda r: r["title"]
         return {"used": sorted(used, key=key), "made": sorted(made, key=key)} if (used or made) else None
 
+    def recipe_view(self, r, this=None):
+        """A recipe as the pages show it: each ingredient slot is a named group (Blade) plus extras, or a list of links."""
+        slots = []
+        for ing in r["ingredients"]:
+            if not ing:
+                continue
+            items = list(dict.fromkeys(ing))
+            group = next((g for g, members in self.ingredient_groups.items()
+                          if len(set(members) & set(items)) >= 0.8 * len(members)), None)
+            extras = [i for i in items if i not in self.ingredient_groups[group]] if group else items
+            missing = [self.title(i) for i in self.ingredient_groups[group] if i not in items] if group else []
+            slots.append({"group": group, "groupUrl": f"/crafting/{slugify(group)}/" if group else None,
+                          "groupNote": ("Except " + ", ".join(missing)) if missing else None,
+                          "items": [self.link(i) | {"icon": self.icon_for(i), "this": i == this} for i in extras],
+                          "hasThis": this in items})
+        return {"title": recipe_title(r), "cls": r["class"], "slots": slots,
+                "results": [self.link(x) | {"icon": self.icon_for(x), "this": x == this} for x in dict.fromkeys(r["results"])],
+                "instant": r.get("instant")}
+
+    def icon_for(self, cls):
+        """Glyph key for an item, from its category and subcategory."""
+        page = self.by_class.get(cls)
+        cat = page["category"] if page else None
+        sub = self.subcat(page) if page else None
+        base = family(cls)
+        if cat == "weapons":
+            if sub == "Melee":
+                return "knife" if re.search(r"Knife|Machete|Scimitar|Sword|Cleaver|Bayonet|Akinaka|Jambiya|Sickle", base) else \
+                       "axe" if re.search(r"Axe|Hatchet|Pickaxe", base) else "hammer"
+            return "bomb" if sub == "Explosives" else "gun"
+        if cat == "ammunition":
+            return "ammo"
+        if cat == "attachments":
+            return "mag" if sub == "Magazines" else "scope" if sub == "Optics" else "gun"
+        if cat == "clothing":
+            return "backpack" if sub == "Backpacks" else "shirt"
+        if cat == "medical":
+            return "cross"
+        if cat == "food":
+            return "bottle" if sub == "Drinks" else "can" if sub == "Canned" else "apple" if sub in ("Fruit and vegetables", "Seeds") else "meat"
+        if cat == "vehicles":
+            return "wheel" if sub == "Parts" else "car"
+        if cat == "gear":
+            return {"Containers": "box", "Camping": "fire", "Electronics": "battery", "Base building": "nail", "Repair": "tool",
+                    "Tools": "tool"}.get(sub, "cube")
+        if re.search(r"Stick|Plank|Log|Firewood|Bark", base):
+            return "log"
+        if re.search(r"Rag|Rope|Cloth|Fabric|Leather|Pelt|Netting", base):
+            return "cloth"
+        if re.search(r"Stone|Brick|Metal|Wire|Nail", base):
+            return "nail"
+        if re.search(r"Bottle|Pot$|Canteen|Barrel|Cauldron", base):
+            return "bottle"
+        return "cube"
+
     def vehicle(self, cls):
-        ev = next(((n, e) for n, e in self.purez.get("events", {}).items() if cls in e["children"]), None)
-        if not ev:
+        """Per-map vehicle spawn data for a config vehicle class (any colour of it)."""
+        _, c = self.cfg(cls)
+        if not c or not (set(c.get("_lineage") or []) & VEHICLE_BASES):
             return None
-        name, e = ev
-        st = self.purez.get("spawnable", {}).get(cls) or {}
-        counts = {}
-        for g in st.get("groups", []):
-            for i, c in g.get("items", []):
-                slot = counts.setdefault(i, {"n": 0, "chance": 1.0})
-                slot["n"] += 1
-                slot["chance"] = min(slot["chance"], g["chance"] * c)
-        parts = [self.link(i) | part for i, part in counts.items()]
-        return {"event": name, "nominal": e["nominal"], "positions": e["positions"],
-                "variants": [self.link(x) | {"title": variant_label(x, family(cls) if x.startswith(family(cls)) else x.rsplit("_", 1)[0])} for x in e["children"] if x != cls], "parts": parts,
-                "condition": condition_bar(st.get("damage") or [0, 0])}
+        out = []
+        for mid, label, map_id, m in self.missions:
+            pz = m.get("purez", {})
+            for name, e in pz.get("events", {}).items():
+                if cls not in e.get("children", []) or not e.get("active"):
+                    continue
+                st = pz.get("spawnable", {}).get(cls) or {}
+                counts = {}
+                for g in st.get("groups", []):
+                    for i, ch in g.get("items", []):
+                        slot = counts.setdefault(i, {"n": 0, "chance": 1.0})
+                        slot["n"] += 1
+                        slot["chance"] = min(slot["chance"], g["chance"] * ch)
+                out.append({"map": mid, "name": label, "event": name, "nominal": e["nominal"], "positions": e["positions"],
+                            "parts": [self.link(i) | part for i, part in counts.items()],
+                            "condition": condition_bar(st.get("damage") or [0, 0])})
+        return out or [{"map": None, "name": None, "nominal": 0, "positions": 0, "parts": [], "condition": None}]
+
+    def is_vehicle(self, cls):
+        _, c = self.cfg(cls)
+        return bool(c and set(c.get("_lineage") or []) & VEHICLE_BASES)
 
     # ------------------------------------------------------------------ pages
     def collect(self):
@@ -582,6 +697,9 @@ class Wiki:
                     self.by_class[page["cls"]] = page
         self.auto_pages()
         self.index_configs()
+        for g in self.ingredient_groups:
+            self.pages.append({"url": f"/crafting/{slugify(g)}/", "meta": {}, "body": "", "src": "", "category": "crafting",
+                               "title": g, "group": g})
         # script-defined conditions get pages automatically
         for mid, (name, agent, slug) in DISEASES.items():
             if mid in self.scripts.get("modifiers", {}):
@@ -639,7 +757,23 @@ class Wiki:
             out["repair"] = self.links(kits)
         slots = [WEAR_SLOTS[x.lower()] for x in (c.get("inventorySlot") or []) if x.lower() in WEAR_SLOTS]
         if cat == "clothing" and slots:
-            out["worn"] = ", ".join(dict.fromkeys(slots))
+            out["slot"] = ", ".join(dict.fromkeys(slots))
+        if cat == "clothing" and isinstance(c.get("heatIsolation"), (int, float)) and c["heatIsolation"] > 0:
+            out["insulation"] = {"value": f"{round(c['heatIsolation'] * 100)}%", "level": insulation(c["heatIsolation"])}
+        if isinstance(c.get("absorbency"), (int, float)) and c["absorbency"] > 0 and cat in ("clothing", "gear"):
+            out["absorbency"] = f"{round(c['absorbency'] * 100)}%"
+        if c.get("liquidContainerType"):
+            out["liquids"] = liquids(c["liquidContainerType"])
+        stages = dig(c, ("Food", "FoodStages")) or {}
+        if stages and cat == "food":
+            rows = []
+            for st in FOOD_STAGES:
+                props = (stages.get(st) or {}).get("nutrition_properties")
+                if props and len(props) >= 5:
+                    fullness, energy, water, index, tox = props[:5]
+                    rows.append({"stage": st, "energy": energy, "water": water, "index": index, "fullness": fullness, "toxicity": tox})
+            if rows:
+                out["stages"] = rows
         armor = dig(c, ("DamageSystem", "GlobalArmor")) or {}
         rows = []
         for key, label in ARMOR_KINDS:
@@ -719,42 +853,65 @@ class Wiki:
                 if oi.get("discreteDistance"):
                     d = oi["discreteDistance"]
                     out["zeroing"] = d
-        if cat == "vehicles" and not self.vehicle(cls):
-            parts = defaultdict(int)
+        if cat == "vehicles" and self.is_vehicle(cls):
+            parts = {}
             for slot in c.get("attachments") or []:
-                for item in self.by_slot.get(slot.lower(), [])[:1]:
-                    parts[item] += 1
-            out["parts"] = [self.link(i) | {"n": n} for i, n in parts.items()]
+                cands = [i for i in self.by_slot.get(slot.lower(), []) if i in self.by_class]
+                if not cands:
+                    continue
+                page = self.by_class[cands[0]]
+                e = parts.setdefault(page["url"], {"title": page["title"], "url": page["url"], "cls": cands[0], "n": 0,
+                                                   "alternatives": []})
+                e["n"] += 1
+                for alt in cands[1:]:
+                    ap = self.by_class[alt]
+                    if ap["url"] != page["url"] and all(x["url"] != ap["url"] for x in e["alternatives"]):
+                        e["alternatives"].append({"title": ap["title"], "url": ap["url"]})
+            out["parts"] = list(parts.values())
             if c.get("fuelCapacity"):
                 out["fuel"] = f"{c['fuelCapacity']:g} l"
+            if isinstance(c.get("itemsCargoSize"), list) and any(c["itemsCargoSize"]):
+                w, h = c["itemsCargoSize"][:2]
+                out["cargo"] = f"{w * h} slots"
+        if cat == "vehicles" and not self.is_vehicle(cls):
+            fits = sorted({v for v, vc in self.configs.get("vehicles", {}).items() if set(vc.get("_lineage") or []) & VEHICLE_BASES
+                           and any(a.lower() in [x.lower() for x in c.get("inventorySlot") or []] for a in vc.get("attachments") or [])})
+            out["fitsVehicles"] = self.links(fits)
         return out
 
     def auto_pages(self):
-        """A page for every item family that spawns on PureZ, and for every vehicle type."""
-        types = self.purez.get("types", {})
-        by_base = {}
-        for cls, t in types.items():
-            if (t["nominal"] or 0) <= 0 or t["category"] in (None, "lootdispatch"):
+        """A page for every item in any PureZ mission's economy, every vehicle in the configs and every part they take."""
+        types = {}                                  # class -> types entry (first mission that has it)
+        for _, _, _, m in self.missions:
+            for cls, t in m.get("purez", {}).get("types", {}).items():
+                types.setdefault(cls, t)
+        self.all_types = types
+        cfg = self.configs.get("vehicles", {})
+        classes = {cls for cls, t in types.items() if t["category"] not in (None, "lootdispatch")}
+        for cls, c in cfg.items():
+            if c.get("scope") != 2 or DEV_ITEM.search(cls):
                 continue
+            lineage = set(c.get("_lineage") or [])
+            if lineage & VEHICLE_BASES or any(sl.lower() in self.vehicle_slots for sl in c.get("inventorySlot") or []):
+                classes.add(cls)
+        by_base = {}
+        for cls in classes:
             by_base.setdefault(family(cls), []).append(cls)
         fams = {}
         for base, members in by_base.items():  # a family takes its members' most common category
-            cats = [wiki_category(m, types[m], (self.cfg(m)[1] or {}).get("inventorySlot") or ()) for m in members]
-            cat = max(set(cats), key=cats.count)
-            # items the game names identically (Teddy Bear, Brass Knuckles) share a page as variants
+            cats = [wiki_category(m, types.get(m) or {}, (self.cfg(m)[1] or {}).get("inventorySlot") or (), self.vehicle_slots) for m in members]
+            cat = "vehicles" if any(self.is_vehicle(m) for m in members) else max(set(cats), key=cats.count)
+            # items the game names identically (Teddy Bear, Brass Knuckles, every colour of a car) share a page as variants
             name = next((self.cfg(m)[1].get("displayName") for m in members if self.cfg(m)[1] and self.cfg(m)[1].get("displayName")), None)
             key = (f"name:{name}", cat) if name and not str(name).startswith("$") else (base, cat)
             fams.setdefault(key, []).extend(m for m in members if m not in fams.get(key, []))
         fams = {(k[0].split("name:", 1)[-1] if k[0].startswith("name:") else k[0], k[1]): v for k, v in fams.items()}
-        for name, e in self.purez.get("events", {}).items():
-            if name.startswith("Vehicle") and e["active"] and e["nominal"] > 0 and e["children"]:
-                fams[(name, "vehicles")] = list(e["children"])
         taken = {p["url"] for p in self.pages}
         self.unconfigured = []     # types.xml entries without a config in the uploaded game files
         for (base, cat), members in sorted(fams.items()):
             if cat != "vehicles" and self.configs.get("vehicles") and not any(self.cfg(m)[1] for m in members):
                 self.unconfigured.append(base)
-            members.sort(key=lambda c: (-(types.get(c, {}).get("nominal") or 0), c))
+            members.sort(key=lambda c: (-(types.get(c, {}).get("nominal") or 0), len(c), c))
             existing = next((self.by_class[m] for m in members if m in self.by_class), None)
             if existing:
                 existing["variants"] = members if len(members) > 1 else None
@@ -765,7 +922,7 @@ class Wiki:
             if DEV_ITEM.search(base) and all(DEV_ITEM.search(m) for m in members):
                 continue
             named = next((m for m in [rep_cls] + members if self.cfg(m)[1] and self.cfg(m)[1].get("displayName")), None)
-            title = VEHICLE_NAMES.get(base) if cat == "vehicles" else self.title(named, {"title": None}) if named else item_title(base)
+            title = self.title(named, {"title": None}) if named else item_title(base)
             slug = slugify(title)
             url = f"/{cat}/{slug}/"
             if url in taken:
@@ -793,6 +950,7 @@ class Wiki:
             tpl = ("home.html" if p["url"] == "/" else
                    "item.html" if p.get("cls") else
                    "disease.html" if p.get("disease") else
+                   "group.html" if p.get("group") else
                    "server.html" if p["url"] == "/server/" else
                    "crafting.html" if p["url"] == "/crafting/" else
                    "category.html" if p["src"].endswith("index.md") and p["category"] in CAT else "page.html")
@@ -827,32 +985,32 @@ class Wiki:
         cls = p.get("cls")
         if cls:
             sec, c = self.cfg(cls)
-            loot = None if self.vehicle(cls) else self.loot(cls)
+            members = p.get("variants") or [cls]
+            vehicle = self.vehicle(cls)
+            loot = None if vehicle else self.loot(cls, members)
             variants = None
             if p.get("variants"):
-                types = self.purez.get("types", {})
                 base = family(cls)
-                variants = [{"cls": v, "label": ammo_role(v) if p["category"] == "ammunition" else variant_label(v, base),
-                             "nominal": (types.get(v) or {}).get("nominal")} for v in p["variants"]]
+                variants = [{"cls": v, "label": ammo_role(v) if p["category"] == "ammunition" else variant_label(v, base)} for v in p["variants"]]
                 if p["category"] == "ammunition":
                     ctx["ammoVariants"] = self.ammo_variants(cls, p["variants"])
-                if loot:
-                    loot["nominal"] = sum((types.get(v) or {}).get("nominal") or 0 for v in p["variants"])
-                    loot["min"] = sum((types.get(v) or {}).get("min") or 0 for v in p["variants"])
-            map_url = f"{MAP_URL}#nasdara?i={cls}&l=buildings" if loot and loot["usage"] and loot["spawns"] else None
             ctx["item"] = {
                 "cls": cls, "config": c, "description": p["meta"].get("summary") or (c or {}).get("descriptionShort"),
-                "loot": loot, "variants": variants, "mapUrl": map_url, "weapon": self.weapon(cls), "ballistics": self.ballistics(cls),
-                "medical": self.medical(cls), "recipes": self.recipes_for(cls), "vehicle": self.vehicle(cls),
+                "loot": loot, "variants": variants, "weapon": self.weapon(cls), "ballistics": self.ballistics(cls),
+                "medical": self.medical(cls), "recipes": self.recipes_for(cls), "vehicle": vehicle,
                 "media": media(p["category"], cls), "specs": specs(c, p["category"]), "facts": self.facts(cls, p["category"]),
+                "icon": self.icon_for(cls),
             }
         if p.get("disease"):
             ctx["disease"] = self.disease(p["disease"])
         if p["url"] == "/server/":
             ctx["server"] = self.server()
         if p["url"] == "/crafting/":
-            ctx["recipes"] = [r | {"title": recipe_title(r)} for r in self.scripts.get("recipes", [])]
-            ctx["link"] = self.link
+            ctx["recipes"] = [self.recipe_view(r) for r in self.scripts.get("recipes", [])]
+            ctx["groups"] = [(g, f"/crafting/{slugify(g)}/", len(m)) for g, m in self.ingredient_groups.items()]
+        if p.get("group"):
+            ctx["groupItems"] = [self.link(i) | {"icon": self.icon_for(i)} for i in self.ingredient_groups[p["group"]] if i in self.by_class]
+            ctx["groupMembers"] = len(self.ingredient_groups[p["group"]])
         if p["url"] == "/":
             ctx["counts"] = {k: sum(1 for x in self.pages if x["category"] == k and x["url"] != f"/{k}/") for k, *_ in CATEGORIES}
         if p["category"] in SUBCATS:
@@ -868,7 +1026,6 @@ class Wiki:
 
     def ammo_variants(self, base, members):
         """Each load and box of a round as its own section: what differs from the plain round."""
-        types = self.purez.get("types", {})
         out = []
         for v in members:
             if v == base:
@@ -880,7 +1037,7 @@ class Wiki:
             b = self.configs.get("ammo", {}).get((self.cfg(base)[1] or {}).get("ammo"), {})
             m = AMMO_VARIANT.match(v)
             out.append({"cls": v, "role": ammo_role(v), "title": self.title(v), "description": c.get("descriptionShort"),
-                        "count": c.get("count") or (int(m.group("n")) if m and m.group("n") else None), "weight": c.get("weight"), "nominal": (types.get(v) or {}).get("nominal"),
+                        "count": c.get("count") or (int(m.group("n")) if m and m.group("n") else None), "weight": c.get("weight"),
                         "damage": {k: (dmg.get(k) or {}).get("damage") for k in ("Health", "Blood", "Shock")} if c.get("ammo") != (self.cfg(base)[1] or {}).get("ammo") else None,
                         "initSpeed": ammo.get("initSpeed") if ammo.get("initSpeed") != b.get("initSpeed") else None,
                         "tracer": bool(ammo.get("tracerStartTime", -1) >= 0) if ammo else False})
@@ -991,8 +1148,11 @@ def condition_bar(dmg):
     for name, a, b in HEALTH_LEVELS:
         overlap = max(0.0, min(hi, b) - max(lo, a))
         segs.append({"name": name, "on": overlap > 0 or (lo == hi and a <= lo < b)})
-    return {"range": [lo, hi], "levels": segs,
-            "label": label_range([s["name"] for s in segs if s["on"]])}
+    for seg in segs:
+        seg["cls"] = HEALTH_CLASS[seg["name"]]
+    on = [s for s in segs if s["on"]]
+    return {"range": [lo, hi], "levels": segs, "label": label_range([s["name"] for s in on]),
+            "cls": on[-1]["cls"] if on else ""}
 
 
 CONST_UNITS = [  # (name contains, unit) checked in order
@@ -1101,12 +1261,8 @@ def specs(c, cat=None):
         add("Storage", f"{w * h} slots ({w}×{h})")
     add("Capacity", c.get("count") and f"{c['count']} rounds")
     add("Muzzle velocity", c.get("initSpeed") and f"{c['initSpeed']} m/s")
-    if cat == "clothing" and isinstance(c.get("heatIsolation"), (int, float)):
-        add("Insulation", f"{round(c['heatIsolation'] * 100)}%")
-    if cat == "clothing" and isinstance(c.get("visibilityModifier"), (int, float)) and c["visibilityModifier"] < 1:
-        add("Visibility", f"{round(c['visibilityModifier'] * 100)}%")
     hp = dig(c, ("DamageSystem", "GlobalHealth", "Health", "hitpoints"))
-    add("Durability", hp and f"{hp:g} HP")
+    add("Hit points", hp and f"{hp:g}")
     return rows or None
 
 
@@ -1127,6 +1283,20 @@ def media_sound(cls, sample_path):
 def humanize_const(name):
     words = name.lower().split("_")
     return " ".join(words).capitalize()
+
+
+def ingredient_groups(recipes):
+    """Alternative sets that recur across recipes, named for the crafting pages. 'Blade' is every cutting tool
+    the game accepts wherever a recipe wants something sharp: the intersection of the big recurring sets."""
+    big = [set(g) for r in recipes for g in r["ingredients"] if len(g) >= 20]
+    if not big:
+        return {}
+    counts = defaultdict(int)
+    for st in big:
+        for i in st:
+            counts[i] += 1
+    members = sorted(i for i, n in counts.items() if n >= len(big) * 0.4)
+    return {"Blade": members} if len(members) >= 10 else {}
 
 
 def recipe_title(r):

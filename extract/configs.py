@@ -469,7 +469,7 @@ def trajectory(v0, air_friction, zero=100, ranges=(50, 100, 200, 300, 400, 500, 
 # ----------------------------------------------------------------------------------------
 # Export
 
-KEEP_SUBCLASSES = {"damagesystem", "nutrition", "energymanager", "cargo", "opticsinfo", "opticsinfoweaponoverride", "meleemodes",
+KEEP_SUBCLASSES = {"damagesystem", "nutrition", "food", "energymanager", "cargo", "opticsinfo", "opticsinfoweaponoverride", "meleemodes",
                    "animevents", "simplehiddenselections", "inventoryequipment"}
 SKIP_PROPS = {"simulation", "animclass"}  # hiddenSelections* are kept: the render pipeline uses them for colour variants
 

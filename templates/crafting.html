@@ -1,17 +1,13 @@
 {% extends "base.html" %}
+{% from "_macros.html" import recipe, icon %}
 {% block main %}
 <header class="page-head">
   <h1>Crafting</h1>
   <p class="lead">{{ recipes | length }} recipes. Combine the two ingredients in your hands or inventory.</p>
 </header>
+{% if groups %}<p class="chips groups">{% for g, url, n in groups %}<a class="chip" href="{{ url }}">{{ icon("knife") }} {{ g }} <small>{{ n }} items</small></a>{% endfor %}</p>{% endif %}
 <input class="filter" type="search" placeholder="Filter recipes" aria-label="Filter recipes" data-filter="#recipes li">
 <ul class="recipes" id="recipes">
-  {% for r in recipes | sort(attribute="title") %}
-  <li data-text="{{ (r.title ~ ' ' ~ (r.ingredients | sum(start=[]) | join(' ')) ~ ' ' ~ (r.results | join(' '))) | lower }}">
-    <span class="rname">{{ r.title }}</span>
-    <span class="ing">{{ r.ingredients[0] | map("humanize") | join(" / ") }}</span><span class="plus">+</span><span class="ing">{{ r.ingredients[1] | map("humanize") | join(" / ") }}</span>
-    {% if r.results %}<span class="arrow">→</span><span class="res">{{ r.results | map("humanize") | join(", ") }}</span>{% endif %}
-  </li>
-  {% endfor %}
+  {% for r in recipes | sort(attribute="title") %}{{ recipe(r) }}{% endfor %}
 </ul>
 {% endblock %}

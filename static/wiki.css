@@ -171,10 +171,26 @@ table.data { width: 100%; border-collapse: collapse; font-variant-numeric: tabul
 .sep { color: #3a3a3a; margin: 0 0.5rem; }
 
 /* Condition */
+/* condition, dark red to bright green like the inventory */
+:root { --c-pristine: #3ecf5e; --c-worn: #9ad34a; --c-damaged: #e0c340; --c-badly: #e08a3a; --c-ruined: #a32020; }
 .cond { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; height: 8px; max-width: 260px; }
 .cond span { background: #1d1d1d; }
 .cond span.on { background: var(--white); }
+.cond span.c-pristine { background: var(--c-pristine); } .cond span.c-worn { background: var(--c-worn); }
+.cond span.c-damaged { background: var(--c-damaged); } .cond span.c-badly { background: var(--c-badly); } .cond span.c-ruined { background: var(--c-ruined); }
 .cond-label { margin-top: 0.45rem; color: var(--white); font-weight: 500; }
+.cond-label.c-pristine { color: var(--c-pristine); } .cond-label.c-worn { color: var(--c-worn); } .cond-label.c-damaged { color: var(--c-damaged); }
+.cond-label.c-badly { color: var(--c-badly); } .cond-label.c-ruined { color: var(--c-ruined); }
+.cond-dd { font: 400 0.9rem var(--body) !important; }
+.cond-dd .cond { margin-top: 0.4rem; }
+.cond-dd .cond-label { font-size: 0.9rem; }
+.lvl { font-weight: 500; }
+.lvl-worst, .lvl-low { color: var(--c-badly); } .lvl-medium { color: var(--c-damaged); } .lvl-high, .lvl-best { color: var(--c-pristine); }
+.server { margin-top: 1.25rem; }
+.server + .server { padding-top: 1.25rem; border-top: 1px solid var(--line); }
+.server h4 { font: 600 0.78rem var(--body); letter-spacing: 0.14em; text-transform: uppercase; color: var(--grey); margin: 1rem 0 0.5rem; }
+.server .chips { margin-top: 0.75rem; }
+.fitted { margin-top: 0.75rem; color: var(--text); }
 .loot { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 2rem; align-items: start; }
 .loot h3:first-child { margin-top: 0; }
 .loot .facts { grid-column: 1 / -1; margin-top: 1.25rem; }
@@ -199,17 +215,27 @@ table.data { width: 100%; border-collapse: collapse; font-variant-numeric: tabul
 .play { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--panel); border: 1px solid var(--line); color: var(--white); font: 500 0.95rem var(--body); padding: 0.5rem 0.9rem; cursor: pointer; }
 .play:hover, .play[aria-pressed="true"] { border-color: var(--red-hi); }
 
-/* Links and recipes */
-.links { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; }
-.links.cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-.recipes { list-style: none; border-top: 1px solid var(--line); }
-.recipes li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 0.6rem; padding: 0.6rem 0; border-bottom: 1px solid var(--line); }
-.recipes .rname { flex-basis: 100%; color: var(--white); font-weight: 600; }
-.recipes .plus, .recipes .arrow { color: var(--red-hi); font-weight: 600; }
-.recipes .res { color: var(--white); }
-.recipes.compact li { padding: 0.45rem 0; }
-.recipes.compact .rname { flex-basis: auto; min-width: 11rem; }
-.recipes .ing.this { color: var(--white); }
+/* Links and recipes: each recipe is a self-contained card */
+.ic { width: 1em; height: 1em; vertical-align: -0.15em; flex: none; }
+.recipes { list-style: none; display: grid; gap: 0.6rem; }
+.recipe { background: var(--black); border: 1px solid var(--line); padding: 0.75rem 0.9rem 0.85rem; }
+.recipe h4 { font: 600 0.95rem var(--body); color: var(--white); margin-bottom: 0.55rem; }
+.recipe .steps { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem 0.6rem; }
+.recipe .slot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
+.recipe .op { color: var(--red-hi); font-weight: 700; font-size: 1.05rem; }
+.recipe .ing, .recipe .group { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.22rem 0.55rem; border: 1px solid var(--line); background: #141414; font-size: 0.88rem; color: var(--text); text-decoration: none; }
+.recipe .ing a { color: var(--text); text-decoration: none; }
+.recipe .ing a:hover, .recipe .group:hover { color: var(--white); }
+.recipe .ing .ic, .recipe .group .ic { color: var(--grey); font-size: 1rem; }
+.recipe .ing.this { border-color: var(--red); color: var(--white); }
+.recipe .ing.this a { color: var(--white); }
+.recipe .group { border-style: dashed; color: var(--white); font-weight: 500; }
+.recipe .result .ing { border-color: #333; color: var(--white); }
+.recipe .result .ing a { color: var(--white); }
+.recipe .more { color: var(--muted); font-size: 0.82rem; cursor: help; }
+.chips.groups { margin-bottom: 1rem; }
+.chips.groups .chip { display: inline-flex; align-items: center; gap: 0.35rem; text-decoration: none; }
+.chips.groups .chip small { color: var(--muted); }
 .filter { width: 100%; max-width: 420px; height: 38px; margin-bottom: 1rem; padding: 0 0.9rem; background: var(--panel); color: var(--white); border: 1px solid var(--line); font: 400 0.95rem var(--body); }
 
 /* Prose */
