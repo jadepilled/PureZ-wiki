@@ -26,7 +26,7 @@ indices), so nothing needs debinarising first. From the wiki repo on your PC:
    `python pipeline/layout.py --render F:\PureZ\PureZ-render --only AKM`
    then everything on the wiki: `python pipeline/layout.py --render F:\PureZ\PureZ-render` (`--all` for every item).
 3. **Render** (Windows example):
-   `"C:\Program Files\Blender Foundation\Blender 4.2\blender.exe" -b -P pipeline/blender_render.py -- --work pipeline/work --out media --gpu --only AKM`
+   `pipeline\render.bat` (all models) or `pipeline\render.bat AKM` (one class); it runs `blender --background --python pipeline/blender_render.py -- --work pipeline/work --out media --gpu`. Set `BLENDER_EXE` in the batch file if Blender is not at the Blender 5.1 default path.
 4. Commit `media/`. Pages show the render and 3D model automatically.
 
 Useful options: `--only AKM` to redo one item, `--samples 64` for faster drafts, `--size 1600x1200`.
