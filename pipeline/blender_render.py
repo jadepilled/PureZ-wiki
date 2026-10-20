@@ -86,10 +86,15 @@ def setup_render(a):
 
 
 def bounds(objs):
+    """World-space box of the evaluated meshes (vertex positions after modifiers, not the cached bound_box)."""
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
     lo, hi = Vector((1e9, 1e9, 1e9)), Vector((-1e9, -1e9, -1e9))
     for o in objs:
-        for c in o.bound_box:
-            p = o.matrix_world @ Vector(c)
+        ev = o.evaluated_get(dg)
+        verts = getattr(ev.data, "vertices", None)
+        pts = (ev.matrix_world @ v.co for v in verts) if verts else (ev.matrix_world @ Vector(c) for c in ev.bound_box)
+        for p in pts:
             lo = Vector(map(min, lo, p))
             hi = Vector(map(max, hi, p))
     return lo, hi
