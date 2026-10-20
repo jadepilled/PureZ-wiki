@@ -1,4 +1,3 @@
 ---
 class: AKM
-title: AKM
 ---

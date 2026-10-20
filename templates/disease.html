@@ -7,6 +7,7 @@
   <h1>{{ D.name }}</h1>
   <p class="meta"><code class="cls">{{ D.modifier.class }}</code>{% for s in D.symptoms %}<span class="chip">{{ s | capitalize }}</span>{% endfor %}</p>
 </header>
+{% if body %}<section class="prose lead-prose">{{ body | safe }}</section>{% endif %}
 
 {% if A %}
 <section class="block">
@@ -46,5 +47,4 @@
 </section>
 {% endif %}
 
-{% if body %}<section class="block prose"><h2>Notes</h2>{{ body | safe }}</section>{% endif %}
 {% endblock %}

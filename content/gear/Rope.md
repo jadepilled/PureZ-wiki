@@ -1,4 +1,3 @@
 ---
 class: Rope
-title: Rope
 ---

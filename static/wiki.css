@@ -14,7 +14,7 @@
   --body: "Blender Pro", "Blender", "Barlow", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --top-h: 60px;
+  --top-h: 56px;
   --gutter: clamp(16px, 3vw, 40px);
 }
 
@@ -42,15 +42,14 @@ code, kbd { font-family: var(--mono); font-size: 0.85em; }
   height: var(--top-h);
   display: flex; align-items: center; gap: 1.5rem;
   padding: 0 var(--gutter);
-  background: rgba(10, 10, 10, 0.9);
-  backdrop-filter: blur(8px);
+  background: rgba(10, 10, 10, 0.96);
   border-bottom: 1px solid var(--line);
 }
-.logo { font: 900 1.5rem/1 var(--head); color: var(--white); text-decoration: none; white-space: nowrap; }
+.logo { font: 900 1.4rem/1 var(--head); color: var(--white); text-decoration: none; white-space: nowrap; }
 .logo span { color: var(--red); }
-.logo em { font: 600 0.75rem var(--body); font-style: normal; letter-spacing: 0.18em; text-transform: uppercase; color: var(--grey); margin-left: 0.6rem; vertical-align: 0.3em; }
+.logo em { font: 600 0.72rem var(--body); font-style: normal; letter-spacing: 0.18em; text-transform: uppercase; color: var(--grey); margin-left: 0.55rem; vertical-align: 0.3em; }
 .out-links { margin-left: auto; display: flex; gap: 1.25rem; }
-.out { color: var(--grey); font-size: 0.85rem; text-decoration: none; white-space: nowrap; }
+.out { color: var(--grey); font: 600 0.78rem var(--body); letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; white-space: nowrap; }
 .out:hover { color: var(--white); }
 
 .search { position: relative; flex: 1; max-width: 520px; }
@@ -189,6 +188,8 @@ table.data { width: 100%; border-collapse: collapse; font-variant-numeric: tabul
 
 /* Prose */
 .prose { max-width: 70ch; }
+.lead-prose { max-width: 66ch; margin: 1.25rem 0 0.5rem; font-size: 1.05rem; }
+.lead-prose p + p { margin-top: 0.8rem; }
 .prose p + p, .prose ul, .prose ol, .prose table { margin-top: 0.8rem; }
 .prose ul, .prose ol { padding-left: 1.2rem; }
 .prose table { border-collapse: collapse; }

@@ -153,7 +153,15 @@ def parse_cpp(src, root):
     def value(tok):
         kind, v = tok
         if kind == "str":
-            return v[1:-1].replace('""', '"')
+            v = v[1:-1].replace('""', '"')
+            # a few numbers are written as expressions in quotes, e.g. reloadTime="60/800"
+            if re.fullmatch(r"[\d.eE+\-*/ ()]+", v) and re.search(r"\d", v):
+                try:
+                    f = float(eval(v, {"__builtins__": {}}, {}))
+                    return int(f) if f.is_integer() and "." not in v and "/" not in v else f
+                except Exception:
+                    pass
+            return v
         if kind == "num":
             f = float(v)
             return int(f) if f.is_integer() and "." not in v and "e" not in v.lower() else f
@@ -461,7 +469,7 @@ def trajectory(v0, air_friction, zero=100, ranges=(50, 100, 200, 300, 400, 500, 
 # ----------------------------------------------------------------------------------------
 # Export
 
-KEEP_SUBCLASSES = {"damagesystem", "nutrition", "energymanager", "cargo", "opticsinfo", "opticsinfoweaponoverride",
+KEEP_SUBCLASSES = {"damagesystem", "nutrition", "energymanager", "cargo", "opticsinfo", "opticsinfoweaponoverride", "meleemodes",
                    "animevents", "simplehiddenselections", "inventoryequipment"}
 SKIP_PROPS = {"simulation", "animclass"}  # hiddenSelections* are kept: the render pipeline uses them for colour variants
 

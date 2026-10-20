@@ -74,6 +74,18 @@ GAMEPLAY_LABELS = [
 
 HEALTH_LEVELS = [("Pristine", 0.0, 0.3), ("Worn", 0.3, 0.5), ("Damaged", 0.5, 0.7), ("Badly damaged", 0.7, 1.0)]
 
+REPAIR_KITS = {1: "WeaponCleaningKit", 2: "SewingKit", 3: "LeatherSewingKit", 4: "Whetstone", 5: "DuctTape",
+               6: "TireRepairKit", 7: "ElectronicRepairKit", 8: "EpoxyPutty"}
+WEAR_SLOTS = {"body": "Jacket", "legs": "Pants", "feet": "Shoes", "headgear": "Hat or helmet", "mask": "Face",
+              "eyewear": "Eyes", "gloves": "Gloves", "back": "Backpack", "vest": "Vest", "hips": "Belt", "armband": "Armband",
+              "shoulder": "Shoulder", "melee": "Melee", "pistol": "Holster", "bow": "Shoulder"}
+ATTACH_GROUPS = [("optic", "Optics"), ("muzzle", "Muzzle"), ("suppressor", "Muzzle"), ("buttstock", "Buttstock"),
+                 ("handguard", "Handguard"), ("flashlight", "Light"), ("bayonet", "Bayonet"), ("wrap", "Wrap"),
+                 ("bipod", "Bipod"), ("barrel", "Barrel")]
+ARMOR_KINDS = [("Projectile", "Bullets"), ("Melee", "Melee"), ("Infected", "Infected"), ("FragGrenade", "Explosions")]
+BASE_FOV = 0.462    # field of view the game treats as 1x; magnification is relative to it
+DEV_ITEM = re.compile(r"(?i)test|debug|dummy|_ground$")
+
 
 def load_json(name):
     path = os.path.join(ROOT, "data", name)
@@ -188,6 +200,17 @@ def item_title(cls):
     return sentence(t)
 
 
+def variant_label(cls, base):
+    if cls == base:
+        return "Standard"
+    suffix = cls[len(base):].lstrip("_") if cls.startswith(base) else cls.rsplit("_", 1)[-1] if "_" in cls else cls
+    return humanize(suffix) if suffix else "Standard"
+
+
+def slugify(title):
+    return re.sub(r"[^a-z0-9]+", "-", title.lower().replace("×", "x")).strip("-")
+
+
 def humanize(cls):
     s = re.sub(r"_(?=[A-Z0-9])", " ", cls)
     s = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", s)
@@ -227,6 +250,20 @@ class Wiki:
     def link(self, cls):
         p = self.by_class.get(cls)
         return {"cls": cls, "title": p["title"] if p else self.title(cls), "url": p["url"] if p else None}
+
+    def links(self, classes):
+        """Links without duplicates: colour variants share a page, dev items are dropped."""
+        out, seen = [], set()
+        for c in classes:
+            if DEV_ITEM.search(c) or DEV_ITEM.search(self.title(c)):
+                continue
+            l = self.link(c)
+            key = l["url"] or l["title"]
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(l)
+        return out
 
     # ------------------------------------------------------------------ data blocks
     def loot(self, cls):
@@ -342,7 +379,7 @@ class Wiki:
                 slot["chance"] = min(slot["chance"], g["chance"] * c)
         parts = [self.link(i) | part for i, part in counts.items()]
         return {"event": name, "nominal": e["nominal"], "positions": e["positions"],
-                "variants": [self.link(x) for x in e["children"] if x != cls], "parts": parts,
+                "variants": [self.link(x) | {"title": variant_label(x, family(cls) if x.startswith(family(cls)) else x.rsplit("_", 1)[0])} for x in e["children"] if x != cls], "parts": parts,
                 "condition": condition_bar(st.get("damage") or [0, 0])}
 
     # ------------------------------------------------------------------ pages
@@ -366,16 +403,163 @@ class Wiki:
                 default_title = CAT[cat][1] if slug.endswith("index") and cat in CAT else humanize(slug.split("/")[-1])
                 page = {"url": url, "meta": meta, "body": body, "category": cat, "src": rel,
                         "cls": meta.get("class"), "title": self.title(meta["class"], meta) if meta.get("class") else meta.get("title", default_title)}
+                if page["cls"]:
+                    page["url"] = f"/{cat}/{meta.get('slug') or slugify(page['title'])}/"
+                if meta.get("disease") in DISEASES:
+                    page["disease"] = meta["disease"]
+                    page["title"] = DISEASES[meta["disease"]][0]
+                    page["url"] = f"/health/{DISEASES[meta['disease']][2]}/"
                 self.pages.append(page)
                 if page["cls"]:
                     self.by_class[page["cls"]] = page
         self.auto_pages()
+        self.index_configs()
         # script-defined conditions get pages automatically
         for mid, (name, agent, slug) in DISEASES.items():
             if mid in self.scripts.get("modifiers", {}):
                 url = f"/health/{slug}/"
                 if not any(p["url"] == url for p in self.pages):
                     self.pages.append({"url": url, "meta": {}, "body": "", "src": "", "category": "health", "disease": mid, "title": name})
+
+    def index_configs(self):
+        """Slot and ammo lookups across every config class that has a wiki page."""
+        self.by_slot = defaultdict(list)      # inventory slot (lower) -> classes that fit it
+        self.by_ammo = defaultdict(list)      # bullet class -> magazines and piles using it
+        self.weapons_by_mag = defaultdict(list)
+        self.weapons_by_slot = defaultdict(list)
+        self.weapons_by_chamber = defaultdict(list)
+        seen = set()
+        for cls, page in self.by_class.items():
+            sec, c = self.cfg(cls)
+            if not c or page["cls"] in seen and cls != page["cls"]:
+                continue
+            seen.add(page["cls"])
+            for slot in c.get("inventorySlot") or []:
+                self.by_slot[slot.lower()].append(page["cls"])
+            if sec == "magazines" and c.get("ammo"):
+                self.by_ammo[c["ammo"]].append(page["cls"])
+            if sec == "weapons":
+                for m in c.get("magazines") or []:
+                    self.weapons_by_mag[m].append(cls)
+                for slot in c.get("attachments") or []:
+                    self.weapons_by_slot[slot.lower()].append(cls)
+                for a in c.get("chamberableFrom") or []:
+                    self.weapons_by_chamber[a].append(cls)
+        for d in (self.by_slot, self.by_ammo, self.weapons_by_mag, self.weapons_by_slot, self.weapons_by_chamber):
+            for k in d:
+                d[k] = sorted(dict.fromkeys(d[k]), key=lambda x: self.title(x))
+
+    def fits(self, cls):
+        """Where an attachment goes: the weapons or clothing with a matching slot."""
+        _, c = self.cfg(cls)
+        out = []
+        for slot in (c or {}).get("inventorySlot") or []:
+            out += self.weapons_by_slot.get(slot.lower(), [])
+            out += [h for h, pg in self.by_class.items() if h == pg["cls"] and h != cls and
+                    any(a.lower() == slot.lower() for a in (self.cfg(h)[1] or {}).get("attachments") or [])]
+        out += self.weapons_by_mag.get(cls, [])
+        return self.links(sorted(dict.fromkeys(out), key=lambda x: self.title(x)))
+
+    def facts(self, cls, cat):
+        """Category-specific details from the config, in the units players use."""
+        sec, c = self.cfg(cls)
+        if not c:
+            return {}
+        out = {}
+        kits = [REPAIR_KITS[k] for k in (c.get("repairableWithKits") or []) if k in REPAIR_KITS]
+        if kits:
+            out["repair"] = self.links(kits)
+        slots = [WEAR_SLOTS[x.lower()] for x in (c.get("inventorySlot") or []) if x.lower() in WEAR_SLOTS]
+        if cat == "clothing" and slots:
+            out["worn"] = ", ".join(dict.fromkeys(slots))
+        armor = dig(c, ("DamageSystem", "GlobalArmor")) or {}
+        rows = []
+        for key, label in ARMOR_KINDS:
+            a = armor.get(key)
+            if a:
+                rows.append({"label": label, "health": 1 - (dig(a, ("Health", "damage")) if dig(a, ("Health", "damage")) is not None else 1),
+                             "shock": 1 - (dig(a, ("Shock", "damage")) if dig(a, ("Shock", "damage")) is not None else 1)})
+        if any(r["health"] > 0.001 or r["shock"] > 0.001 for r in rows):
+            out["armor"] = rows
+        holds = [x for x in (c.get("attachments") or []) if self.by_slot.get(x.lower())]
+        if holds and cat != "vehicles" and sec != "weapons":
+            items = sorted(dict.fromkeys(i for x in holds for i in self.by_slot[x.lower()] if i != cls), key=lambda x: self.title(x))
+            if items:
+                out["holds"] = self.links(items[:24])
+        q, unit = c.get("varQuantityMax"), (c.get("stackedUnit") or "").strip()
+        if q and sec != "magazines":
+            if unit in ("ml", "g"):
+                out["capacity"] = f"{q:g} {unit}"
+            elif unit in ("pills", "pc.", "pc", "w", "%", ""):
+                label = {"pills": "pills", "pc.": "uses", "pc": "uses", "w": "% charge", "%": "%", "": ""}[unit]
+                out["capacity"] = f"{q:g} {label}".strip() if unit not in ("w", "%") else f"{q:g}{label}"
+        nut = c.get("Nutrition")
+        if nut and cat == "food":
+            out["nutrition"] = [(k, v) for k, v in (("Energy", nut.get("energy") and f"{nut['energy']:g} kcal"),
+                                                    ("Water", nut.get("water") and f"{nut['water']:g} ml"),
+                                                    ("Fills the stomach", nut.get("fullnessIndex") and f"×{nut['fullnessIndex']:g}"),
+                                                    ("Nutrition", nut.get("nutritionalIndex") and f"×{nut['nutritionalIndex']:g}"),
+                                                    ("Toxicity", nut.get("toxicity") and f"{nut['toxicity']:g}")) if v]
+        mm = c.get("MeleeModes")
+        if mm and cat in ("gear", "weapons") and c.get("isMeleeWeapon"):
+            modes = []
+            for name in ("Default", "Heavy"):
+                m = mm.get(name) or {}
+                a = self.configs.get("ammo", {}).get(m.get("ammo") or "")
+                if a and not str(m.get("ammo", "")).startswith("MeleeFist"):
+                    dmg = a.get("DamageApplied", {})
+                    modes.append({"name": "Light" if name == "Default" else "Heavy", "health": dig(dmg, ("Health", "damage")),
+                                  "shock": dig(dmg, ("Shock", "damage")), "range": m.get("range")})
+            if modes:
+                out["melee"] = modes
+        if sec == "weapons":
+            out["chambers"] = self.links(c.get("chamberableFrom") or [])
+            groups = defaultdict(list)
+            for slot in c.get("attachments") or []:
+                label = next((g for key, g in ATTACH_GROUPS if key in slot.lower()), None)
+                if label:
+                    groups[label] += self.by_slot.get(slot.lower(), [])
+            out["attachments"] = [{"group": g, "items": self.links(sorted(dict.fromkeys(v), key=lambda x: self.title(x)))} for g, v in groups.items() if v]
+            if c.get("discreteDistance"):
+                out["zeroing"] = c["discreteDistance"]
+            mags = c.get("magazines") or []
+            first = next((self.configs["magazines"].get(m) for m in mags if self.configs["magazines"].get(m)), None)
+            if not first:
+                first = next((self.configs["magazines"].get(m) for m in (c.get("chamberableFrom") or []) if self.configs["magazines"].get(m)), None)
+            if first:
+                a = self.configs.get("ammo", {}).get(first.get("ammo") or "", {})
+                out["damage"] = {"health": dig(a, ("DamageApplied", "Health", "damage")), "shock": dig(a, ("DamageApplied", "Shock", "damage")),
+                                 "velocity": first.get("initSpeed")}
+        if sec == "magazines":
+            out["fits"] = self.links(self.weapons_by_mag.get(cls, []) or self.weapons_by_chamber.get(cls, []))
+            if c.get("ammo"):
+                related = [m for m in self.by_ammo.get(c["ammo"], []) if m != cls]
+                out["sameRound"] = self.links(related)
+            a = self.configs.get("ammo", {}).get(c.get("ammo") or "", {})
+            if a.get("weight"):
+                out["roundWeight"] = f"{a['weight'] * 1000:g} g"
+        if sec == "vehicles" and cat == "attachments":
+            out["fits"] = self.fits(cls)
+            oi = c.get("OpticsInfo") or {}
+            if oi.get("opticsZoomMin"):
+                stated = re.findall(r"(\d+(?:\.\d+)?)x\b", str(c.get("descriptionShort") or ""))
+                lo, hi = BASE_FOV / oi["opticsZoomMin"], BASE_FOV / (oi.get("opticsZoomMax") or oi["opticsZoomMin"])
+                if stated:
+                    out["zoom"] = "–".join(dict.fromkeys(stated)) + "×"
+                elif lo > 1.2:
+                    out["zoom"] = f"{lo:.1f}×" if abs(hi - lo) < 0.05 else f"{min(lo, hi):.1f}–{max(lo, hi):.1f}×"
+                if oi.get("discreteDistance"):
+                    d = oi["discreteDistance"]
+                    out["zeroing"] = d
+        if cat == "vehicles" and not self.vehicle(cls):
+            parts = defaultdict(int)
+            for slot in c.get("attachments") or []:
+                for item in self.by_slot.get(slot.lower(), [])[:1]:
+                    parts[item] += 1
+            out["parts"] = [self.link(i) | {"n": n} for i, n in parts.items()]
+            if c.get("fuelCapacity"):
+                out["fuel"] = f"{c['fuelCapacity']:g} l"
+        return out
 
     def auto_pages(self):
         """A page for every item family that spawns on PureZ, and for every vehicle type."""
@@ -388,7 +572,12 @@ class Wiki:
         fams = {}
         for base, members in by_base.items():  # a family takes its members' most common category
             cats = [wiki_category(m, types[m]) for m in members]
-            fams[(base, max(set(cats), key=cats.count))] = members
+            cat = max(set(cats), key=cats.count)
+            # items the game names identically (Teddy Bear, Brass Knuckles) share a page as variants
+            name = next((self.cfg(m)[1].get("displayName") for m in members if self.cfg(m)[1] and self.cfg(m)[1].get("displayName")), None)
+            key = (f"name:{name}", cat) if name and not str(name).startswith("$") else (base, cat)
+            fams.setdefault(key, []).extend(m for m in members if m not in fams.get(key, []))
+        fams = {(k[0].split("name:", 1)[-1] if k[0].startswith("name:") else k[0], k[1]): v for k, v in fams.items()}
         for name, e in self.purez.get("events", {}).items():
             if name.startswith("Vehicle") and e["active"] and e["nominal"] > 0 and e["children"]:
                 fams[(name, "vehicles")] = list(e["children"])
@@ -402,8 +591,11 @@ class Wiki:
                     self.by_class.setdefault(m, existing)
                 continue
             rep_cls = base if base in members else members[0]
-            title = VEHICLE_NAMES.get(base) if cat == "vehicles" else self.title(rep_cls, {"title": None}) if self.cfg(rep_cls)[1] else item_title(base)
-            slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
+            if DEV_ITEM.search(base) and all(DEV_ITEM.search(m) for m in members):
+                continue
+            named = next((m for m in [rep_cls] + members if self.cfg(m)[1] and self.cfg(m)[1].get("displayName")), None)
+            title = VEHICLE_NAMES.get(base) if cat == "vehicles" else self.title(named, {"title": None}) if named else item_title(base)
+            slug = slugify(title)
             url = f"/{cat}/{slug}/"
             if url in taken:
                 url = f"/{cat}/{slug}-{re.sub(r'[^a-z0-9]+', '-', base.lower())}/"
@@ -469,8 +661,7 @@ class Wiki:
             if p.get("variants"):
                 types = self.purez.get("types", {})
                 base = family(cls)
-                variants = [{"cls": v, "label": humanize(v[len(base):].lstrip("_")) if v.startswith(base) and v != base else "Standard",
-                             "nominal": (types.get(v) or {}).get("nominal")} for v in p["variants"]]
+                variants = [{"cls": v, "label": variant_label(v, base), "nominal": (types.get(v) or {}).get("nominal")} for v in p["variants"]]
                 if loot:
                     loot["nominal"] = sum((types.get(v) or {}).get("nominal") or 0 for v in p["variants"])
                     loot["min"] = sum((types.get(v) or {}).get("min") or 0 for v in p["variants"])
@@ -479,7 +670,7 @@ class Wiki:
                 "cls": cls, "config": c, "description": p["meta"].get("summary") or (c or {}).get("descriptionShort"),
                 "loot": loot, "variants": variants, "mapUrl": map_url, "weapon": self.weapon(cls), "ballistics": self.ballistics(cls),
                 "medical": self.medical(cls), "recipes": self.recipes_for(cls), "vehicle": self.vehicle(cls),
-                "media": media(p["category"], cls), "specs": specs(c),
+                "media": media(p["category"], cls), "specs": specs(c, p["category"]), "facts": self.facts(cls, p["category"]),
             }
         if p.get("disease"):
             ctx["disease"] = self.disease(p["disease"])
@@ -696,22 +887,26 @@ def curve_paths(pts, w=160, h=110, samples=5):
     return {"paths": paths, "mid": paths[samples // 2], "w": w, "h": h}
 
 
-def specs(c):
+def specs(c, cat=None):
     if not c:
         return None
     rows = []
     add = lambda label, val: val not in (None, "", [], 0) and rows.append((label, val))
-    add("Weight", f"{c['weight'] / 1000:g} kg" if isinstance(c.get("weight"), (int, float)) and c.get("weight") else None)
-    if isinstance(c.get("itemSize"), list):
+    add("Weight", f"{c['weight'] / 1000:g} kg" if isinstance(c.get("weight"), (int, float)) and c.get("weight") >= 1000 else
+        f"{c['weight']:g} g" if isinstance(c.get("weight"), (int, float)) and c.get("weight") else None)
+    if isinstance(c.get("itemSize"), list) and cat != "vehicles":
         add("Size", "×".join(str(x) for x in c["itemSize"]) + " slots")
     if isinstance(c.get("itemsCargoSize"), list) and any(c["itemsCargoSize"]):
         w, h = c["itemsCargoSize"][:2]
         add("Storage", f"{w * h} slots ({w}×{h})")
     add("Capacity", c.get("count") and f"{c['count']} rounds")
     add("Muzzle velocity", c.get("initSpeed") and f"{c['initSpeed']} m/s")
-    add("Heat insulation", c.get("heatIsolation"))
+    if cat == "clothing" and isinstance(c.get("heatIsolation"), (int, float)):
+        add("Insulation", f"{round(c['heatIsolation'] * 100)}%")
+    if cat == "clothing" and isinstance(c.get("visibilityModifier"), (int, float)) and c["visibilityModifier"] < 1:
+        add("Visibility", f"{round(c['visibilityModifier'] * 100)}%")
     hp = dig(c, ("DamageSystem", "GlobalHealth", "Health", "hitpoints"))
-    add("Durability", hp and f"{hp} HP")
+    add("Durability", hp and f"{hp:g} HP")
     return rows or None
 
 

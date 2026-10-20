@@ -4,7 +4,7 @@
 {% if item.media.model %}<script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>{% endif %}
 {% endblock %}
 {% block main %}
-{% set L = item.loot %}{% set W = item.weapon %}{% set B = item.ballistics %}{% set V = item.vehicle %}
+{% set L = item.loot %}{% set W = item.weapon %}{% set B = item.ballistics %}{% set V = item.vehicle %}{% set F = item.facts %}
 {{ crumbs(cat, page) }}
 <header class="item-head">
   <h1>{{ page.title }}</h1>
@@ -39,6 +39,13 @@
     {% if L and L.spawns %}{{ stat("On the map", L.nominal ~ (" item" if L.nominal == 1 else " items")) }}{% endif %}
     {% if L and L.quant %}{{ stat("Spawns filled", L.quant[0] ~ "–" ~ L.quant[1] ~ "%") }}{% endif %}
     {% if V %}{{ stat("On the map", V.nominal ~ " vehicles") }}{% endif %}
+    {% if F.worn %}{{ stat("Worn on", F.worn) }}{% endif %}
+    {% if F.capacity %}{{ stat("Holds", F.capacity) }}{% endif %}
+    {% if F.zoom %}{{ stat("Zoom", F.zoom) }}{% endif %}
+    {% if F.fuel %}{{ stat("Fuel tank", F.fuel) }}{% endif %}
+    {% if F.roundWeight %}{{ stat("Per round", F.roundWeight) }}{% endif %}
+    {% if F.damage and F.damage.health %}{{ stat("Damage", F.damage.health | num, (F.damage.shock ~ " shock") if F.damage.shock else none) }}{% endif %}
+    {% if F.damage and F.damage.velocity and not B %}{{ stat("Muzzle velocity", F.damage.velocity ~ " m/s") }}{% endif %}
     {% if preview and not item.config %}<div class="stat pending"><dt>Stats</dt><dd>From 1.30 configs</dd></div>{% endif %}
   </dl>
 </div>
@@ -55,6 +62,7 @@
 {% if W and (W.modes or W.recoil) %}
 <section class="block">
   <h2>Handling</h2>
+  {% if F.zeroing %}<p class="note">Zeroing: {{ F.zeroing | join(", ") }} m</p>{% endif %}
   {% if W.modes %}
   <table class="data">
     <thead><tr><th>Fire mode</th><th class="n">Rate</th><th class="n">Dispersion</th></tr></thead>
@@ -105,10 +113,62 @@
 </section>
 {% endif %}
 
-{% if W and W.magazines %}
+{% if (W and W.magazines) or F.chambers %}
 <section class="block">
-  <h2>Magazines</h2>
-  <ul class="links">{% for m in W.magazines %}<li>{{ itemlink(m) }}</li>{% endfor %}</ul>
+  <h2>Ammunition</h2>
+  {% if F.chambers %}<h3>Rounds</h3><ul class="links">{% for m in F.chambers %}<li>{{ itemlink(m) }}</li>{% endfor %}</ul>{% endif %}
+  {% if W and W.magazines %}<h3>Magazines</h3><ul class="links">{% for m in W.magazines %}<li>{{ itemlink(m) }}</li>{% endfor %}</ul>{% endif %}
+</section>
+{% endif %}
+
+{% if F.attachments %}
+<section class="block">
+  <h2>Attachments</h2>
+  <table class="data">
+    <tbody>{% for g in F.attachments %}<tr><td class="w-chance">{{ g.group }}</td><td>{% for i in g["items"] %}{{ itemlink(i) }}{% if not loop.last %}<span class="sep">·</span>{% endif %}{% endfor %}</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if F.fits or F.sameRound %}
+<section class="block">
+  <h2>Fits</h2>
+  {% if F.fits %}<ul class="links">{% for i in F.fits %}<li>{{ itemlink(i) }}</li>{% endfor %}</ul>{% else %}<p class="muted">Nothing on PureZ uses it.</p>{% endif %}
+  {% if F.sameRound %}<h3>Same round</h3><ul class="links">{% for i in F.sameRound %}<li>{{ itemlink(i) }}</li>{% endfor %}</ul>{% endif %}
+</section>
+{% endif %}
+
+{% if F.armor %}
+<section class="block">
+  <h2>Protection</h2>
+  <table class="data">
+    <thead><tr><th>Against</th><th class="n">Health damage blocked</th><th class="n">Shock blocked</th></tr></thead>
+    <tbody>{% for r in F.armor %}<tr><td>{{ r.label }}</td><td class="n">{{ r.health | pct }}</td><td class="n">{{ r.shock | pct }}</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if F.nutrition %}
+<section class="block">
+  <h2>Nutrition</h2>
+  <dl class="facts row">{% for label, v in F.nutrition %}{{ stat(label, v) }}{% endfor %}</dl>
+</section>
+{% endif %}
+
+{% if F.melee %}
+<section class="block">
+  <h2>Melee</h2>
+  <table class="data">
+    <thead><tr><th>Swing</th><th class="n">Health</th><th class="n">Shock</th><th class="n">Reach</th></tr></thead>
+    <tbody>{% for m in F.melee %}<tr><td>{{ m.name }}</td><td class="n">{{ m.health | num }}</td><td class="n">{{ m.shock | num }}</td><td class="n">{{ m.range | num(1) }} m</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+{% endif %}
+
+{% if F.holds %}
+<section class="block">
+  <h2>Can hold</h2>
+  <ul class="links">{% for i in F.holds %}<li>{{ itemlink(i) }}</li>{% endfor %}</ul>
 </section>
 {% endif %}
 
@@ -142,6 +202,7 @@
       {% if item.mapUrl %}<p class="maplink"><a href="{{ item.mapUrl }}">Show on the map</a></p>{% endif %}
     </div>
     <dl class="facts row">
+      {% if F.repair %}{{ stat("Repair with", F.repair | map(attribute="title") | join(", ")) }}{% endif %}
       {{ stat("Despawns after", L.lifetime | duration) }}
       {% if L.restock %}{{ stat("Restock", L.restock | duration) }}{% endif %}
       {{ stat("Restocks below", L.min ~ (" item" if L.min == 1 else " items")) }}
@@ -162,6 +223,10 @@
     {{ stat("Condition", V.condition.label) }}
   </dl>
   {% if V.variants %}<h3>Other colours</h3><p class="chips">{% for v in V.variants %}<span class="chip">{{ itemlink(v) }}</span>{% endfor %}</p>{% endif %}
+  {% if F.parts %}
+  <h3>Parts</h3>
+  <ul class="links cols">{% for p in F.parts %}<li>{{ itemlink(p) }}{% if p.n > 1 %} <span class="muted">×{{ p.n }}</span>{% endif %}</li>{% endfor %}</ul>
+  {% endif %}
   {% if V.parts %}
   <h3>Spawns fitted with</h3>
   <ul class="links cols">{% for p in V.parts %}<li>{{ itemlink(p) }}{% if p.n > 1 %} <span class="muted">×{{ p.n }}</span>{% endif %}{% if p.chance < 1 %} <span class="muted">{{ p.chance | pct }}</span>{% endif %}</li>{% endfor %}</ul>
