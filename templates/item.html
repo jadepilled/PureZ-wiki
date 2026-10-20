@@ -26,6 +26,13 @@
     {% else %}
       <div class="media-empty"><span>Render pending</span></div>
     {% endif %}
+    {% if item.media.views %}
+    <div class="views" role="tablist" aria-label="Views">
+      {% if item.media.model %}<button type="button" data-view="model" aria-pressed="true"><span>3D</span></button>{% endif %}
+      <button type="button" data-view="{{ item.media.image }}" aria-pressed="{{ 'false' if item.media.model else 'true' }}"><img src="{{ item.media.image }}" alt="" loading="lazy"></button>
+      {% for v in item.media.views %}<button type="button" data-view="{{ v.src }}" aria-pressed="false" title="{{ v.name }}"><img src="{{ v.src }}" alt="{{ v.name }}" loading="lazy"></button>{% endfor %}
+    </div>
+    {% endif %}
   </figure>
   {% endif %}
 

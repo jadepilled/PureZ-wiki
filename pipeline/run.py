@@ -81,7 +81,7 @@ class Bar:
 def run_stage(cmd, stage, total_rx, line_rx, log_path, cwd=None):
     """Run a subprocess, parse its lines for the total and per-item results, draw the bar, keep the full log."""
     bar = None
-    failures = []
+    failures, textures = [], []
     with open(log_path, "a", encoding="utf-8") as log:
         log.write(f"--- {time.strftime('%Y-%m-%d %H:%M:%S')} {' '.join(cmd)}\n")
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8",
@@ -94,6 +94,9 @@ def run_stage(cmd, stage, total_rx, line_rx, log_path, cwd=None):
                 bar = Bar(stage, int(m.group(1)))
                 bar.draw()
                 continue
+            if line.startswith("texture  "):
+                textures.append(line[9:])
+                continue
             m = line_rx.search(line)
             if m and bar is not None:
                 bar.step(m.group("status") or "rendered", m.group("item"))
@@ -104,6 +107,11 @@ def run_stage(cmd, stage, total_rx, line_rx, log_path, cwd=None):
         code = proc.wait()
     if bar:
         bar.draw(final=True)
+        if textures:
+            uniq = sorted(set(textures))
+            with open(os.path.join(os.path.dirname(log_path), "textures_missing.txt"), "w", encoding="utf-8") as f:
+                f.write("\n".join(uniq) + "\n")
+            print(paint(f"  {len(uniq)} textures could not be loaded (pipeline/work/textures_missing.txt); e.g. {uniq[0][:110]}", "33"))
         if failures:   # the distinct reasons, most common first, so a systematic problem is obvious at once
             reasons = {}
             for f in failures:

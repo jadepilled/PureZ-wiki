@@ -102,6 +102,20 @@
   // a group opened by its anchor is always shown
   if (location.hash) { const t = document.querySelector(location.hash); if (t && t.tagName === "DETAILS") t.open = true; }
 
+  // Render views: thumbnails swap the main image, or bring the 3D model back
+  document.querySelectorAll(".media .views").forEach((strip) => {
+    const fig = strip.closest(".media");
+    const viewer = fig.querySelector("model-viewer");
+    let img = fig.querySelector(":scope > img");
+    strip.querySelectorAll("button[data-view]").forEach((b) => b.addEventListener("click", () => {
+      strip.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+      if (b.dataset.view === "model") { if (viewer) viewer.hidden = false; if (img) img.hidden = true; return; }
+      if (!img) { img = document.createElement("img"); img.alt = ""; fig.prepend(img); }
+      img.src = b.dataset.view; img.hidden = false;
+      if (viewer) viewer.hidden = true;
+    }));
+  });
+
   // List filters
   document.querySelectorAll("input[data-filter]").forEach((f) => {
     const rows = [...document.querySelectorAll(f.dataset.filter)];

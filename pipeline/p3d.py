@@ -231,13 +231,34 @@ def load_texture(files, game_path, cache):
         try:
             img = paa.read_paa(src) if src.lower().endswith(".paa") else Image.open(src).convert("RGBA")
         except Exception as e:
-            print(f"  texture {game_path}: {e}", file=sys.stderr)
+            print(f"texture  {game_path}: {type(e).__name__}: {e}", flush=True)
+    elif game_path and not game_path.startswith("#"):
+        print(f"texture  {game_path}: not in the render folder", flush=True)
     m = re.match(r"#\(argb,\d+,\d+,\d+\)color\(([\d.]+),([\d.]+),([\d.]+),([\d.]+)", game_path or "")
     if img is None and m:  # procedural solid colour
         rgba = tuple(int(float(x) * 255) for x in m.groups())
         img = Image.new("RGBA", (4, 4), rgba)
     cache[game_path] = img
     return img
+
+
+def has_alpha(name, img):
+    """True when the colour texture carries transparency to honour: _ca textures with any see-through pixels, and
+    other textures with a real share of fully transparent pixels (decals, wire, mesh). _co alpha is often junk."""
+    if img.mode != "RGBA":
+        return False
+    low = (name or "").lower()
+    if any(t in low for t in ("_nohq", "_smdi", "_as", "_mc", "_ti")):
+        return False
+    a = img.getchannel("A")
+    lo, hi = a.getextrema()
+    if lo >= 250:
+        return False
+    if "_ca" in low:
+        return True
+    hist = a.histogram()
+    transparent = sum(hist[:16]) / (img.width * img.height)
+    return transparent > 0.02
 
 
 def smdi_to_mr(img):
@@ -373,11 +394,11 @@ def norm(v):
     return (v[0] / l, v[1] / l, v[2] / l)
 
 
-def export(lod, out, files, hidden=None, materials_override=None, parts=None, tex=None, quantize=True):
+def export(lod, out, files, hidden=None, materials_override=None, parts=None, encoding=None, quantize=True):
     """Write a GLB. hidden: {selection: texture} from hiddenSelectionsTextures.
     parts: attachments to merge in, [{"lod", "hidden", "mats", "origin", "frame", "name"}], each placed
     at its proxy's origin (and frame, when given) in the main model's space.
-    tex: texture encoding, {"fmt": "png"|"webp", "lossless": True, "quality": 90, "max_size": 0, "png_level": 6}."""
+    encoding: texture encoding, {"fmt": "png"|"webp", "lossless": True, "quality": 90, "max_size": 0, "png_level": 6}."""
     items = [{"lod": lod, "hidden": hidden, "mats": materials_override, "origin": (0.0, 0.0, 0.0), "frame": None, "name": "model"}]
     items += parts or []
     groups, total_faces = {}, 0
@@ -416,7 +437,7 @@ def export(lod, out, files, hidden=None, materials_override=None, parts=None, te
             total_faces += 1
 
     glb, cache = Glb(), {}
-    glb.tex.update(tex or {})
+    glb.tex.update(encoding or {})
     glb.quantize = quantize
     for (tex, mat), faces in groups.items():
         P, N, T, idx, seen = [], [], [], [], {}
@@ -450,7 +471,7 @@ def export(lod, out, files, hidden=None, materials_override=None, parts=None, te
         color = load_texture(files, tex, cache)
         if color is not None:
             material["pbrMetallicRoughness"]["baseColorTexture"] = {"index": glb.image(color)}
-            if "_ca" in (tex or "").lower() and color.getextrema()[3][0] < 250:
+            if has_alpha(tex, color):
                 material["alphaMode"], material["alphaCutoff"] = "MASK", 0.5
         roles = rvmat_textures(files.find(mat)) if files.find(mat) else {}
         if roles.get("normal"):

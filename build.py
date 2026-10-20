@@ -1305,6 +1305,8 @@ def media(cat, cls):
     for kind, rel in (("image", f"media/renders/{cat}/{cls}.webp"), ("model", f"media/models/{cls}.glb")):
         if os.path.exists(os.path.join(ROOT, rel)):
             out[kind] = "/" + rel
+    views = [(name, f"media/renders/{cat}/{cls}.{name}.webp") for name in ("back", "top", "front")]
+    out["views"] = [{"name": name.title(), "src": "/" + rel} for name, rel in views if os.path.exists(os.path.join(ROOT, rel))]
     return out
 
 

@@ -9,7 +9,8 @@ media/renders/report.json. Resumable: --resume skips classes that already have a
 
 Options: --only <text> (substring, repeatable), --limit N, --shard-index I --shard-count N,
 --size 2400x1800 (the frame before cropping), --quality 92, --format webp|png, --engine EEVEE|CYCLES
-(EEVEE default), --samples N, --gpu, --exposure -0.3, --no-glb, --check (verify Blender and the work tree only).
+(EEVEE default), --samples N, --gpu, --exposure -0.3, --views main,back,top (also front; each extra view is
+<Class>.<view>.webp), --no-glb, --check (verify Blender and the work tree only).
 """
 import argparse, json, os, sys, time, traceback
 
@@ -33,6 +34,8 @@ PRESETS = {
     "vehicles": (40, 14, 50), "default": (35, 18, 70),
 }
 FILL = 0.88  # share of the frame the model may cover
+# Extra views as changes to the preset: (azimuth added, elevation, file suffix)
+VIEWS = {"main": (0, None, ""), "back": (180, None, ".back"), "top": (0, 72, ".top"), "front": (90, None, ".front")}
 LOG = None
 
 
@@ -57,6 +60,7 @@ def args():
     ap.add_argument("--format", default="webp", choices=["webp", "png"])
     ap.add_argument("--exposure", type=float, default=-0.3)
     ap.add_argument("--no-crop", action="store_true", help="keep the full frame instead of cropping to the model")
+    ap.add_argument("--views", default="main,back,top", help=f"views rendered per item, from {','.join(VIEWS)}")
     ap.add_argument("--blender-glb", action="store_true", help="export media/models/<Class>.glb from Blender instead of copying web.glb")
     ap.add_argument("--samples", type=int, default=0, help="render samples (default 64 EEVEE, 96 Cycles)")
     ap.add_argument("--engine", default="EEVEE", choices=["CYCLES", "EEVEE"])
@@ -185,8 +189,12 @@ def add_light(name, kind, loc, target, energy, size):
     return obj
 
 
-def frame(objs, category, aspect):
+def frame(objs, category, aspect, view="main"):
     az, el, lens = PRESETS.get(category, PRESETS["default"])
+    d_az, v_el, _ = VIEWS[view]
+    az += d_az
+    if v_el is not None:
+        el = v_el
     lo, hi = bounds(objs)
     center, size = (lo + hi) / 2, hi - lo
     # presets assume the model's long axis runs front to back (Blender Y). DayZ weapons are modelled
@@ -233,6 +241,7 @@ def crop_to_model(cam, corners, margin=0.04):
     fewer empty pixels, no change to the pixels that matter."""
     from bpy_extras.object_utils import world_to_camera_view
     sc = bpy.context.scene
+    bpy.context.view_layer.update()            # the camera was just moved: project with its current matrix
     pts = [world_to_camera_view(sc, cam, p) for p in corners]
     xs, ys = [p.x for p in pts], [p.y for p in pts]
     lo_x, hi_x = max(0.0, min(xs) - margin), min(1.0, max(xs) + margin)
@@ -257,15 +266,21 @@ def render_item(item_dir, category, cls, a):
             for poly in o.data.polygons:
                 poly.use_smooth = True
     sc = bpy.context.scene
-    cam, corners = frame(objs, category, sc.render.resolution_x / sc.render.resolution_y)
-    if not a.no_crop:
-        crop_to_model(cam, corners)
-    img_out = os.path.join(a.out, "renders", category, f"{cls}.{a.format}")
-    os.makedirs(os.path.dirname(img_out), exist_ok=True)
-    sc.render.filepath = img_out
-    bpy.ops.render.render(write_still=True)
-    if not os.path.exists(img_out):
-        raise RuntimeError(f"Blender wrote no file at {img_out}")
+    img_out = None
+    for view in views(a):
+        for o in list(sc.objects):
+            if o.type in ("CAMERA", "LIGHT"):
+                bpy.data.objects.remove(o, do_unlink=True)
+        cam, corners = frame(objs, category, sc.render.resolution_x / sc.render.resolution_y, view)
+        if not a.no_crop:
+            crop_to_model(cam, corners)
+        out = image_path(a, category, cls, view)
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        sc.render.filepath = out
+        bpy.ops.render.render(write_still=True)
+        if not os.path.exists(out):
+            raise RuntimeError(f"Blender wrote no file at {out}")
+        img_out = img_out or out
     if not a.no_glb:
         glb_out = os.path.join(a.out, "models", f"{cls}.glb")
         os.makedirs(os.path.dirname(glb_out), exist_ok=True)
@@ -284,6 +299,18 @@ def render_item(item_dir, category, cls, a):
             except Exception:
                 continue
     return img_out
+
+
+def views(a):
+    v = [x.strip() for x in a.views.split(",") if x.strip()]
+    bad = [x for x in v if x not in VIEWS]
+    if bad:
+        sys.exit(f"unknown view(s) {bad}; choose from {', '.join(VIEWS)}")
+    return v or ["main"]
+
+
+def image_path(a, category, cls, view="main"):
+    return os.path.join(a.out, "renders", category, f"{cls}{VIEWS[view][2]}.{a.format}")
 
 
 def work_items(a):
@@ -324,8 +351,7 @@ def main():
     done, skipped, failed, start = 0, 0, [], time.time()
     report = []
     for n, (category, cls) in enumerate(items, 1):
-        img = os.path.join(a.out, "renders", category, f"{cls}.{a.format}")
-        if a.resume and os.path.exists(img) and os.path.getsize(img) > 1024:
+        if a.resume and all(os.path.exists(image_path(a, category, cls, v)) and os.path.getsize(image_path(a, category, cls, v)) > 1024 for v in views(a)):
             skipped += 1
             log(f"[{n}/{len(items)}] skipped {category}/{cls}")
             continue

@@ -132,6 +132,11 @@ h3 { font: 600 0.78rem var(--body); letter-spacing: 0.14em; text-transform: uppe
 .split:not(:has(.media)) { grid-template-columns: 1fr; }
 .media { position: relative; aspect-ratio: 4 / 3; background: radial-gradient(ellipse at 50% 55%, #1a1a1a, #0d0d0d 70%); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
 .media img { width: 100%; height: 100%; object-fit: contain; padding: 2%; }
+.views { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 4px; padding: 6px; justify-content: center; background: linear-gradient(transparent, rgba(0, 0, 0, 0.45)); }
+.views button { width: 56px; height: 42px; padding: 2px; background: rgba(16, 16, 16, 0.85); border: 1px solid var(--line); cursor: pointer; display: grid; place-items: center; color: var(--grey); font: 600 0.72rem var(--body); letter-spacing: 0.08em; }
+.views button img { width: 100%; height: 100%; object-fit: contain; padding: 0; }
+.views button:hover { border-color: var(--grey); }
+.views button[aria-pressed="true"] { border-color: var(--red-hi); color: var(--white); }
 .media model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
 .media-empty { width: 100%; height: 100%; display: grid; place-items: center; color: var(--muted); font-size: 0.85rem; letter-spacing: 0.12em; text-transform: uppercase;
   background-image: linear-gradient(#161616 1px, transparent 1px), linear-gradient(90deg, #161616 1px, transparent 1px); background-size: 32px 32px; background-position: center; }

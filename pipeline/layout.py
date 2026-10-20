@@ -227,10 +227,10 @@ def main():
                                   "hidden": dict(zip([x.lower() for x in ac.get("hiddenSelections") or []], ac.get("hiddenSelectionsTextures") or [])),
                                   "mats": dict(zip([x.lower() for x in ac.get("hiddenSelections") or []], ac.get("hiddenSelectionsMaterials") or []))})
                     fitted.append({k: att[k] for k in ("slot", "class", "proxy", "chance")} | {"origin": [round(x, 4) for x in att["origin"]]})
-            info = p3d.export(lod, os.path.join(out_dir, "model.glb"), files, hidden, mats, parts, tex={"png_level": 1})
+            info = p3d.export(lod, os.path.join(out_dir, "model.glb"), files, hidden, mats, parts, encoding={"png_level": 1})
             if not a.no_web:
                 p3d.export(lod, os.path.join(out_dir, "web.glb"), files, hidden, mats, parts,
-                           tex={"fmt": "webp", "lossless": not a.web_lossy, "quality": a.web_lossy or 90, "max_size": a.web_tex})
+                           encoding={"fmt": "webp", "lossless": not a.web_lossy, "quality": a.web_lossy or 90, "max_size": a.web_tex})
                 info["web_bytes"] = os.path.getsize(os.path.join(out_dir, "web.glb"))
             with open(os.path.join(out_dir, "item.json"), "w", encoding="utf-8") as f:
                 json.dump({"class": cls, "category": it["category"], "model": model, "hidden": hidden, "fitted": fitted, **info}, f, indent=1)

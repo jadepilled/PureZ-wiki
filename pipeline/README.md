@@ -36,7 +36,9 @@ indices), so nothing needs debinarising first. From the wiki repo on your PC:
    - `pipeline\render.bat [AKM]` or `pipeline\render.bat -- --check` runs Blender alone (see blender_render.py).
 3. Commit `media/`. Pages show the render and 3D model automatically.
 
-Renders are cropped to the model plus a 4% margin out of a 2400x1800 frame (`--size`, `--no-crop`), WebP
+Each item is rendered from three sides by default: the main three-quarter view, the other side (`.back`) and from
+above (`.top`); `--views main,back,top,front` adds a head-on view. The wiki shows them as thumbnails under the
+picture. Renders are cropped to the model plus a 4% margin out of a 2400x1800 frame (`--size`, `--no-crop`), WebP
 quality 92 (`--quality 100` for lossless, `--format png`), EEVEE by default (`--engine CYCLES --gpu` for the
 slower path-traced look), exposure -0.3 with the AgX base look (`--exposure`). Progress and failures: console,
 `pipeline\work\render.log`, and `media\renders\report.json` with tracebacks.
