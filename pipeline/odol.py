@@ -377,7 +377,9 @@ def read_lod(r, end):
     isz, ich = (2, "H") if npoints <= 0xFFFF else (4, "I")
     d = r.d
     uniform = next((k for k in (3, 4) if nfaces * (1 + k * isz) in (alloc, alloc - nfaces)), None)
-    if uniform and all(d[face_start + i * (1 + uniform * isz)] == uniform for i in range(0, nfaces, max(1, nfaces // 64))):
+    if uniform and not all(d[face_start + i * (1 + uniform * isz)] == uniform for i in range(0, nfaces, max(1, nfaces // 64))):
+        uniform = None
+    if uniform:
         rec = np.dtype([("n", "u1"), ("v", f"<{ich.lower() if ich == 'I' else 'u2'}", (uniform,))]) if ich == "H" else np.dtype([("n", "u1"), ("v", "<u4", (uniform,))])
         table = np.frombuffer(d, dtype=rec, count=nfaces, offset=face_start)
         if not np.all(table["n"] == uniform):
