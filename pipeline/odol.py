@@ -463,6 +463,8 @@ def main():
     ap.add_argument("--batch", action="store_true", help="convert every ODOL .p3d under src in place, keeping the original as .odol")
     ap.add_argument("--all-lods", action="store_true", help="keep geometry, memory and other non-visual LODs too")
     a = ap.parse_args()
+    if not os.path.exists(a.src):
+        sys.exit(f"not found: {a.src}\n(in Git Bash, quote Windows paths or use forward slashes: \"F:\\PureZ\\PureZ-render\" or F:/PureZ/PureZ-render)")
     if a.batch:
         done = failed = skipped = 0
         for d, _, fs in os.walk(a.src):
@@ -486,6 +488,8 @@ def main():
                     if os.path.exists(path + ".tmp"):
                         os.remove(path + ".tmp")
         print(f"converted {done}, failed {failed}, already MLOD {skipped}")
+        if not (done or failed or skipped):
+            print(f"no .p3d files under {a.src}")
     else:
         dst = a.dst or a.src[:-4] + ".mlod.p3d"
         model = convert(a.src, dst, a.all_lods)
