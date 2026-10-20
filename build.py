@@ -359,11 +359,13 @@ class Wiki:
     def recipes_for(self, cls):
         used, made = [], []
         for r in self.scripts.get("recipes", []):
+            r = r | {"title": recipe_title(r), "results": list(dict.fromkeys(r["results"]))}
             if any(cls in ing for ing in r["ingredients"]):
                 used.append(r)
             if cls in r["results"]:
                 made.append(r)
-        return {"used": used, "made": made} if (used or made) else None
+        key = lambda r: r["title"]
+        return {"used": sorted(used, key=key), "made": sorted(made, key=key)} if (used or made) else None
 
     def vehicle(self, cls):
         ev = next(((n, e) for n, e in self.purez.get("events", {}).items() if cls in e["children"]), None)

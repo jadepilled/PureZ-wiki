@@ -262,7 +262,7 @@
   <ul class="recipes compact">
     {% for r in rs %}<li>
       <span class="rname">{{ r.title }}</span>
-      {% for ing in r.ingredients %}{% set alts = ing | reject("equalto", item.cls) | list %}{% if item.cls in ing %}<span class="ing this">{{ page.title }}</span>{% else %}<span class="ing">{{ (alts[:3] | map("humanize") | join(" / ")) ~ (" + " ~ (alts | length - 3) ~ " more" if alts | length > 3 else "") }}</span>{% endif %}{% if not loop.last %}<span class="plus">+</span>{% endif %}{% endfor %}
+      {% set ings = r.ingredients | reject("equalto", []) | list %}{% for ing in ings %}{% set alts = ing | reject("equalto", item.cls) | list %}{% if item.cls in ing %}<span class="ing this">{{ page.title }}</span>{% else %}<span class="ing">{{ (alts[:3] | map("humanize") | join(" / ")) ~ (" + " ~ (alts | length - 3) ~ " more" if alts | length > 3 else "") }}</span>{% endif %}{% if not loop.last %}<span class="plus">+</span>{% endif %}{% endfor %}
       {% if r.results %}<span class="arrow">→</span><span class="res">{{ r.results | map("humanize") | join(", ") }}</span>{% endif %}
     </li>{% endfor %}
   </ul>
