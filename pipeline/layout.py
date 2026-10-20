@@ -6,9 +6,11 @@ Creates pipeline/work/<category>/<Class>/model.glb + item.json for every wiki pa
 `class` (or, with --all, every public config class that has a model), applying the class's
 hiddenSelectionsTextures so colour variants render correctly. Then run blender_render.py.
 
-Weapons are assembled from their proxies: each proxy triangle in the model marks an attachment
-slot, and the attachment PureZ spawns there most often (buttstock, handguard and magazine by
-default; --slots to change) is merged into the GLB at the proxy's position.
+Weapons are assembled from their proxies: each proxy in the model marks an attachment slot, and
+the attachment PureZ spawns there most often (buttstock, handguard and magazine by default;
+--slots to change) is merged into the GLB at the proxy's position and orientation.
+
+Binarised (ODOL) models are decoded on the fly by odol.py, so the render folder can be used as is.
 """
 import argparse, glob, json, os, re, sys
 
@@ -117,8 +119,8 @@ def main():
     ap.add_argument("--all", action="store_true", help="every public config class with a model")
     ap.add_argument("--only")
     ap.add_argument("--slots", default=",".join(DEFAULT_SLOTS), help="attachment slots merged into weapon renders (comma list, '' for none)")
-    ap.add_argument("--proxy-frame", default="identity", choices=["identity", "triangle"],
-                    help="place attachments at the proxy origin only (DayZ attachments are modelled in weapon space), or rotate them by the proxy triangle too")
+    ap.add_argument("--proxy-frame", default="triangle", choices=["identity", "triangle"],
+                    help="rotate attachments by the proxy's transform (the default; it comes straight from the ODOL file), or only move them to its origin")
     a = ap.parse_args()
     slots = [x.strip().lower() for x in a.slots.split(",") if x.strip()]
 

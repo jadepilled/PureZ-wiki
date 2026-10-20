@@ -106,8 +106,9 @@ def read_p3d(path):
     if sig == b"MLOD":
         return read_mlod(data)
     if sig == b"ODOL":
-        ver = struct.unpack_from("<I", data, 4)[0]
-        raise NotImplementedError(f"binarised ODOL v{ver} model; run pipeline/deodol.py over the render folder first")
+        import odol
+        model = odol.read_odol(data)
+        return read_mlod(odol.mlod_bytes(model))
     raise ValueError(f"unknown P3D signature {sig!r}")
 
 

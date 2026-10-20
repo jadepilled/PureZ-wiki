@@ -12,7 +12,7 @@ import bpy
 from mathutils import Vector
 
 # Camera presets per wiki category: (azimuth degrees around +Y from the model's front, elevation, lens mm)
-# Models face glTF +Z; long guns point their barrel along +Z, so weapons are shot from the side.
+# Models face glTF +Z. A model whose long axis is X instead (DayZ guns) gets the azimuth turned by 90.
 PRESETS = {
     "weapons": (90, 4, 85), "attachments": (90, 10, 85), "ammunition": (35, 22, 85),
     "clothing": (25, 8, 70), "gear": (35, 22, 70), "medical": (35, 25, 85), "food": (35, 25, 85),
@@ -104,6 +104,10 @@ def frame(objs, category, aspect):
     az, el, lens = PRESETS.get(category, PRESETS["default"])
     lo, hi = bounds(objs)
     center, size = (lo + hi) / 2, hi - lo
+    # presets assume the model's long axis runs front to back (Blender Y). DayZ weapons are modelled
+    # along X (muzzle towards -X), so turn the camera to keep a side-on view of whatever is longest
+    if size.x > size.y * 1.3:
+        az -= 90
     radius = max(size.length / 2, 1e-3)
     cam_data = bpy.data.cameras.new("cam")
     cam_data.lens = lens
