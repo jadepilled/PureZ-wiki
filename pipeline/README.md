@@ -24,12 +24,22 @@ indices), so nothing needs debinarising first. From the wiki repo on your PC:
    `python extract/configs.py --dz ../PureZ --out data/configs.json`
 2. **Convert models** into the work tree, reading textures from the render folder. Start with one gun:
    `python pipeline/layout.py --render F:\PureZ\PureZ-render --only AKM`
-   then everything on the wiki: `python pipeline/layout.py --render F:\PureZ\PureZ-render` (`--all` for every item).
-3. **Render** (Windows example):
-   `pipeline\render.bat` (all models) or `pipeline\render.bat AKM` (one class); it runs `blender --background --python pipeline/blender_render.py -- --work pipeline/work --out media --gpu`. Set `BLENDER_EXE` in the batch file if Blender is not at the Blender 5.1 default path.
+   then everything on the wiki: `python pipeline/layout.py --render F:\PureZ\PureZ-render` (every item in any
+   mission's economy, about 2,000 classes; `--all` for every config class with a model). It prints one line per
+   class and ends with the counts; `missing` lines mean the model is not in the render folder.
+3. **Render**: `pipeline\render.bat` (everything, resumable) or `pipeline\render.bat AKM` (one class). It runs
+   `blender --background --factory-startup --python pipeline/blender_render.py -- --work pipeline/work --out media --resume`.
+   Set `BLENDER_EXE` at the top of the batch file if Blender is not at the Blender 5.1 default path.
+   `pipeline\render.bat -- --check` only verifies Blender, the glTF add-on and the work tree.
+   Progress goes to the console and to `pipeline\work\render.log`; failures with tracebacks to `media\renders\report.json`.
 4. Commit `media/`. Pages show the render and 3D model automatically.
 
-Useful options: `--only AKM` to redo one item, `--samples 64` for faster drafts, `--size 1600x1200`.
+Useful options after `render.bat --`: `--only AKM` (repeatable, substring), `--engine CYCLES --gpu` for the slower
+path-traced look (EEVEE is the default), `--samples 32` for drafts, `--size 1600x1200`, `--format png`,
+`--limit 20`, `--shard-index 0 --shard-count 4` to run several Blenders at once, `--no-glb`.
+
+If nothing renders, check in this order: `pipeline\work` has `<category>\<Class>\model.glb` folders (layout.py
+step), `render.bat -- --check` reports the models, and `pipeline\work\render.log` names the failing class.
 
 To get editable MLOD files (for Object Builder or the Blender Arma toolbox) run the decoder on its own:
 `python pipeline/odol.py model.p3d` writes `model.mlod.p3d`; `python pipeline/odol.py --batch F:/PureZ/PureZ-render`

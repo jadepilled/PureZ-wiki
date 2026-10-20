@@ -1,12 +1,16 @@
-"""Batch-render converted models to transparent WebP images and web GLBs.
+"""Batch-render the work tree to transparent images and web GLBs. Runs inside Blender (4.2+, 5.x).
 
-    blender -b -P pipeline/blender_render.py -- --work pipeline/work --out media
+    blender -b --factory-startup -P pipeline/blender_render.py -- --work pipeline/work --out media [--resume]
 
 Reads work/<category>/<Class>/model.glb (made by layout.py) and writes
-media/renders/<category>/<Class>.webp and media/models/<Class>.glb.
-Options: --only <Class>, --size 1600x1200, --samples 96, --engine CYCLES|EEVEE, --gpu, --no-glb.
+media/renders/<category>/<Class>.webp and media/models/<Class>.glb, plus work/render.log and
+media/renders/report.json. Resumable: --resume skips classes that already have an image.
+
+Options: --only <text> (substring, repeatable), --limit N, --shard-index I --shard-count N,
+--size 1600x1200, --format webp|png, --engine EEVEE|CYCLES (EEVEE default), --samples N, --gpu,
+--no-glb, --check (only verify Blender and the work tree, render nothing).
 """
-import argparse, json, math, os, sys
+import argparse, json, os, sys, time, traceback
 
 try:
     import bpy
@@ -14,9 +18,11 @@ try:
 except ModuleNotFoundError:
     sys.exit("This script runs inside Blender, not plain Python (bpy is Blender's own module, not a pip package).\n"
              "Run it as:\n"
-             "  blender -b -P pipeline/blender_render.py -- --work pipeline/work --out media --gpu\n"
+             "  blender -b --factory-startup -P pipeline/blender_render.py -- --work pipeline/work --out media\n"
              "or on Windows with the full path, e.g.\n"
-             "  \"C:/Program Files/Blender Foundation/Blender 4.2/blender.exe\" -b -P pipeline/blender_render.py -- --work pipeline/work --out media --gpu")
+             "  \"C:/Program Files/Blender Foundation/Blender 5.1/blender.exe\" -b --factory-startup -P pipeline/blender_render.py -- --work pipeline/work --out media")
+
+import math  # noqa: E402
 
 # Camera presets per wiki category: (azimuth degrees around +Y from the model's front, elevation, lens mm)
 # Models face glTF +Z. A model whose long axis is X instead (DayZ guns) gets the azimuth turned by 90.
@@ -25,9 +31,14 @@ PRESETS = {
     "clothing": (25, 8, 70), "gear": (35, 22, 70), "medical": (35, 25, 85), "food": (35, 25, 85),
     "vehicles": (40, 14, 50), "default": (35, 18, 70),
 }
-
-
 FILL = 0.88  # share of the frame the model may cover
+LOG = None
+
+
+def log(msg):
+    print(msg, flush=True)
+    if LOG:
+        LOG.write(msg + "\n"); LOG.flush()
 
 
 def args():
@@ -35,17 +46,42 @@ def args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--work", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--only")
+    ap.add_argument("--only", action="append", default=[], help="class name substring (repeatable)")
+    ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--shard-index", type=int, default=0)
+    ap.add_argument("--shard-count", type=int, default=1)
+    ap.add_argument("--resume", action="store_true", help="skip classes that already have an image")
     ap.add_argument("--size", default="1600x1200")
-    ap.add_argument("--samples", type=int, default=96)
-    ap.add_argument("--engine", default="CYCLES", choices=["CYCLES", "EEVEE"])
+    ap.add_argument("--format", default="webp", choices=["webp", "png"])
+    ap.add_argument("--samples", type=int, default=0, help="render samples (default 64 EEVEE, 96 Cycles)")
+    ap.add_argument("--engine", default="EEVEE", choices=["CYCLES", "EEVEE"])
     ap.add_argument("--gpu", action="store_true")
     ap.add_argument("--no-glb", action="store_true")
+    ap.add_argument("--check", action="store_true")
     return ap.parse_args(argv)
+
+
+# ---------------------------------------------------------------- scene
+def enum_ids(rna_struct, prop):
+    return {e.identifier for e in rna_struct.bl_rna.properties[prop].enum_items}
 
 
 def reset_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
+
+
+def ensure_gltf_io():
+    """The glTF add-on ships with Blender; make sure it is enabled (factory startup normally has it on)."""
+    if hasattr(bpy.ops.import_scene, "gltf") and bpy.ops.import_scene.gltf.poll() is not None:
+        return True
+    for mod in ("io_scene_gltf2", "bl_ext.blender_org.io_scene_gltf2"):
+        try:
+            bpy.ops.preferences.addon_enable(module=mod)
+            if hasattr(bpy.ops.import_scene, "gltf"):
+                return True
+        except Exception:
+            continue
+    return hasattr(bpy.ops.import_scene, "gltf")
 
 
 def setup_render(a):
@@ -53,14 +89,21 @@ def setup_render(a):
     w, h = (int(x) for x in a.size.lower().split("x"))
     sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
     sc.render.film_transparent = True
-    sc.render.image_settings.file_format = "WEBP"
+    sc.render.image_settings.file_format = a.format.upper()
     sc.render.image_settings.color_mode = "RGBA"
-    sc.render.image_settings.quality = 90
-    sc.view_settings.view_transform = "AgX"
-    sc.view_settings.look = "AgX - Medium High Contrast"
+    if a.format == "webp":
+        sc.render.image_settings.quality = 90
+    else:
+        sc.render.image_settings.compression = 30
+    sc.render.use_file_extension = False
+    for key, val in (("view_transform", "AgX"), ("look", "AgX - Medium High Contrast")):
+        try:
+            setattr(sc.view_settings, key, val)
+        except Exception:
+            pass   # older colour management names; the default look is fine
     if a.engine == "CYCLES":
         sc.render.engine = "CYCLES"
-        sc.cycles.samples = a.samples
+        sc.cycles.samples = a.samples or 96
         sc.cycles.use_denoising = True
         if a.gpu:
             prefs = bpy.context.preferences.addons["cycles"].preferences
@@ -76,15 +119,32 @@ def setup_render(a):
                 except TypeError:
                     continue
     else:
-        sc.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in {e.identifier for e in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items} else "BLENDER_EEVEE"
+        engines = enum_ids(sc.render, "engine")
+        sc.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in engines else "BLENDER_EEVEE"
+        try:
+            sc.eevee.taa_render_samples = a.samples or 64
+        except Exception:
+            pass
     world = bpy.data.worlds.new("studio")
-    world.use_nodes = True
-    bg = world.node_tree.nodes["Background"]
-    bg.inputs[0].default_value = (0.045, 0.045, 0.05, 1)  # soft dark fill for reflections; hidden by film transparency
-    bg.inputs[1].default_value = 1.0
+    try:
+        world.use_nodes = True
+    except Exception:
+        pass
+    nt = world.node_tree
+    bg = nt.nodes.get("Background") if nt else None
+    if nt and not bg:
+        bg = nt.nodes.new("ShaderNodeBackground")
+        out = next((n for n in nt.nodes if n.type == "OUTPUT_WORLD"), None) or nt.nodes.new("ShaderNodeOutputWorld")
+        nt.links.new(bg.outputs[0], out.inputs[0])
+    if bg:
+        bg.inputs[0].default_value = (0.045, 0.045, 0.05, 1)  # soft dark fill for reflections; hidden by film transparency
+        bg.inputs[1].default_value = 1.0
+    else:
+        world.color = (0.045, 0.045, 0.05)
     sc.world = world
 
 
+# ---------------------------------------------------------------- framing
 def bounds(objs):
     """World-space box of the evaluated meshes (vertex positions after modifiers, not the cached bound_box)."""
     bpy.context.view_layer.update()
@@ -97,6 +157,8 @@ def bounds(objs):
         for p in pts:
             lo = Vector(map(min, lo, p))
             hi = Vector(map(max, hi, p))
+    if lo.x > hi.x:
+        raise RuntimeError("no geometry")
     return lo, hi
 
 
@@ -104,6 +166,7 @@ def add_light(name, kind, loc, target, energy, size):
     data = bpy.data.lights.new(name, kind)
     data.energy = energy
     if kind == "AREA":
+        data.shape = "DISK"
         data.size = size
     obj = bpy.data.objects.new(name, data)
     bpy.context.collection.objects.link(obj)
@@ -146,7 +209,7 @@ def frame(objs, category, aspect):
     dist = (cam.location - center).length
     cam_data.clip_start, cam_data.clip_end = dist / 100, dist * 10
 
-    # three-point studio lighting scaled to the model
+    # three-point studio lighting; wattage scales with the square of the model size so every item is lit alike
     r = radius * 4
     side = Vector((direction.y, -direction.x, 0)).normalized()
     add_light("key", "AREA", center + (direction + side * 0.9 + Vector((0, 0, 0.9))).normalized() * r, center, 900 * radius ** 2, radius * 2.5)
@@ -154,6 +217,7 @@ def frame(objs, category, aspect):
     add_light("rim", "AREA", center + (-direction + Vector((0, 0, 0.8))).normalized() * r, center, 700 * radius ** 2, radius * 2)
 
 
+# ---------------------------------------------------------------- one item
 def render_item(item_dir, category, cls, a):
     reset_scene()
     setup_render(a)
@@ -162,51 +226,93 @@ def render_item(item_dir, category, cls, a):
     if not objs:
         raise RuntimeError("no meshes imported")
     for o in objs:
-        for poly in o.data.polygons:
-            poly.use_smooth = True
+        if hasattr(o.data, "shade_smooth"):
+            o.data.shade_smooth()
+        else:
+            for poly in o.data.polygons:
+                poly.use_smooth = True
     sc = bpy.context.scene
     frame(objs, category, sc.render.resolution_x / sc.render.resolution_y)
-    img_out = os.path.join(a.out, "renders", category, f"{cls}.webp")
+    img_out = os.path.join(a.out, "renders", category, f"{cls}.{a.format}")
     os.makedirs(os.path.dirname(img_out), exist_ok=True)
     sc.render.filepath = img_out
     bpy.ops.render.render(write_still=True)
+    if not os.path.exists(img_out):
+        raise RuntimeError(f"Blender wrote no file at {img_out}")
     if not a.no_glb:
         glb_out = os.path.join(a.out, "models", f"{cls}.glb")
         os.makedirs(os.path.dirname(glb_out), exist_ok=True)
         for o in bpy.context.scene.objects:
             o.select_set(o.type == "MESH")
-        kw = dict(filepath=glb_out, export_format="GLB", use_selection=True, export_image_format="WEBP")
-        try:
-            bpy.ops.export_scene.gltf(**kw, export_draco_mesh_compression_enable=True)
-        except Exception:
-            bpy.ops.export_scene.gltf(**kw)
+        kw = dict(filepath=glb_out, export_format="GLB", use_selection=True)
+        for extra in ({"export_image_format": "WEBP", "export_draco_mesh_compression_enable": True}, {"export_image_format": "WEBP"}, {}):
+            try:
+                bpy.ops.export_scene.gltf(**kw, **extra)
+                break
+            except Exception:
+                continue
     return img_out
 
 
-def main():
-    a = args()
-    done, failed = 0, []
+def work_items(a):
+    items = []
     for category in sorted(os.listdir(a.work)):
         cdir = os.path.join(a.work, category)
         if not os.path.isdir(cdir):
             continue
         for cls in sorted(os.listdir(cdir)):
-            item = os.path.join(cdir, cls)
-            if a.only and cls != a.only:
-                continue
-            if not os.path.exists(os.path.join(item, "model.glb")):
-                continue
-            try:
-                out = render_item(item, category, cls, a)
-                done += 1
-                print(f"rendered {category}/{cls} -> {out}", flush=True)
-            except Exception as e:
-                failed.append((cls, str(e)))
-                print(f"FAILED {category}/{cls}: {e}", flush=True)
-    print(f"done: {done} rendered, {len(failed)} failed")
+            if os.path.exists(os.path.join(cdir, cls, "model.glb")):
+                items.append((category, cls))
+    if a.only:   # exact class names first, else any class containing the text
+        exact = [it for it in items if any(o.lower() == it[1].lower() for o in a.only)]
+        items = exact or [it for it in items if any(o.lower() in it[1].lower() for o in a.only)]
+    items = [it for i, it in enumerate(items) if i % a.shard_count == a.shard_index]
+    if a.limit:
+        items = items[:a.limit]
+    return items
+
+
+def main():
+    global LOG
+    a = args()
+    a.work, a.out = os.path.abspath(a.work), os.path.abspath(a.out)
+    if not os.path.isdir(a.work):
+        sys.exit(f"work tree not found: {a.work}  (run layout.py first)")
+    LOG = open(os.path.join(a.work, "render.log"), "a", encoding="utf-8")
+    log(f"--- {time.strftime('%Y-%m-%d %H:%M:%S')} Blender {bpy.app.version_string} engine={a.engine} gpu={a.gpu} work={a.work} out={a.out}")
+    if not ensure_gltf_io():
+        sys.exit("Blender's glTF add-on is not available (import_scene.gltf); enable it in Preferences > Add-ons")
+    items = work_items(a)
+    log(f"{len(items)} models to render" + (f" (shard {a.shard_index + 1}/{a.shard_count})" if a.shard_count > 1 else ""))
+    if a.check:
+        for c, k in items[:10]:
+            log(f"  {c}/{k}")
+        log("check ok" if items else "check: nothing to render (layout.py made no model.glb files)")
+        return
+    done, skipped, failed, start = 0, 0, [], time.time()
+    report = []
+    for n, (category, cls) in enumerate(items, 1):
+        img = os.path.join(a.out, "renders", category, f"{cls}.{a.format}")
+        if a.resume and os.path.exists(img) and os.path.getsize(img) > 1024:
+            skipped += 1
+            continue
+        t0 = time.time()
+        try:
+            out = render_item(os.path.join(a.work, category, cls), category, cls, a)
+            done += 1
+            log(f"[{n}/{len(items)}] {category}/{cls} -> {os.path.relpath(out, a.out)} ({time.time() - t0:.1f}s)")
+            report.append({"class": cls, "category": category, "image": os.path.relpath(out, a.out)})
+        except Exception as e:
+            failed.append({"class": cls, "category": category, "error": f"{type(e).__name__}: {e}", "trace": traceback.format_exc()})
+            log(f"[{n}/{len(items)}] FAILED {category}/{cls}: {type(e).__name__}: {e}")
+    elapsed = time.time() - start
+    log(f"done: {done} rendered, {skipped} skipped, {len(failed)} failed in {elapsed / 60:.1f} min")
+    os.makedirs(os.path.join(a.out, "renders"), exist_ok=True)
+    with open(os.path.join(a.out, "renders", "report.json" if a.shard_count == 1 else f"report.part{a.shard_index}.json"), "w", encoding="utf-8") as f:
+        json.dump({"blender": bpy.app.version_string, "engine": a.engine, "rendered": done, "skipped": skipped,
+                   "failed": failed, "items": report, "elapsed_s": round(elapsed, 1)}, f, indent=1)
     if failed:
-        with open(os.path.join(a.work, "render_failures.json"), "w") as f:
-            json.dump(failed, f, indent=1)
+        log("failures are listed in media/renders/report.json")
 
 
 if __name__ == "__main__":

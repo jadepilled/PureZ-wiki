@@ -2,8 +2,9 @@
 
     python pipeline/layout.py --render <trimmed render folder> [--all] [--only AKM]
 
-Creates pipeline/work/<category>/<Class>/model.glb + item.json for every wiki page with a
-`class` (or, with --all, every public config class that has a model), applying the class's
+Creates pipeline/work/<category>/<Class>/model.glb + item.json for every class the wiki has a
+page for (every item in a mission's economy in data/missions, plus hand-written pages with a
+`class`; with --all, every public config class that has a model), applying the class's
 hiddenSelectionsTextures so colour variants render correctly. Then run blender_render.py.
 
 Weapons are assembled from their proxies: each proxy in the model marks an attachment slot, and
@@ -39,13 +40,38 @@ def front_matter(path):
     return meta
 
 
-def wiki_items():
+def missions():
+    """Every mission in data/missions (and the old single data/mission.json)."""
+    out = []
+    for path in sorted(glob.glob(os.path.join(ROOT, "data", "missions", "*.json"))) + [os.path.join(ROOT, "data", "mission.json")]:
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                out.append(json.load(f).get("purez", {}))
+    return out
+
+
+def wiki_items(cfg):
+    """Classes the wiki has pages for: hand-written pages with a class, and every economy item of every mission.
+    Categories follow build.py so renders land where the pages look for them (media/renders/<category>/)."""
     out = {}
     for path in glob.glob(os.path.join(ROOT, "content", "**", "*.md"), recursive=True):
         meta = front_matter(path)
         if meta.get("class"):
             cat = meta.get("category") or os.path.relpath(path, os.path.join(ROOT, "content")).split(os.sep)[0]
             out[meta["class"]] = {"category": cat, "model": meta.get("model")}
+    try:
+        sys.path.insert(0, ROOT)
+        import build
+        vehicle_slots = {a.lower() for c in cfg.values() if set(c.get("_lineage") or []) & build.VEHICLE_BASES
+                         for a in c.get("attachments") or [] if not re.search(r"(?i)barrel|cargo|crate|material|canister|planks|sheets|logs", a)}
+        categorise = lambda cls, t: build.wiki_category(cls, t, (cfg.get(cls) or {}).get("inventorySlot") or (), vehicle_slots)
+    except Exception as e:   # build.py needs jinja2 + markdown; without them fall back to the model path
+        print(f"note: categories from model paths ({type(e).__name__}: {e}); install requirements.txt for the wiki's own categories")
+        categorise = lambda cls, t: category_for((cfg.get(cls) or {}).get("model"))
+    for m in missions():
+        for cls, t in m.get("types", {}).items():
+            if cls not in out and (cfg.get(cls) or {}).get("model"):
+                out[cls] = {"category": categorise(cls, t), "model": None}
     return out
 
 
@@ -70,11 +96,12 @@ def model_key(model):
 
 
 def spawn_groups():
-    path = os.path.join(ROOT, "data", "mission.json")
-    if not os.path.exists(path):
-        return {}
-    with open(path, encoding="utf-8") as f:
-        return json.load(f).get("purez", {}).get("spawnable", {})
+    """Attachment spawn groups merged across missions (the first mission wins for a weapon)."""
+    out = {}
+    for m in missions():
+        for cls, g in m.get("spawnable", {}).items():
+            out.setdefault(cls, g)
+    return out
 
 
 def pick_attachments(cls, c, lod, cfg, by_model, spawnable, slots):
@@ -125,13 +152,17 @@ def main():
     slots = [x.strip().lower() for x in a.slots.split(",") if x.strip()]
 
     cfg = configs()
-    items = wiki_items()
+    items = wiki_items(cfg)
     if a.all:
         for cls, c in cfg.items():
             if c.get("model") and cls not in items:
                 items[cls] = {"category": category_for(c["model"]), "model": None}
-    if a.only:
-        items = {k: v for k, v in items.items() if k == a.only}
+    if a.only:   # exact class name first, else any class containing the text
+        exact = {k: v for k, v in items.items() if k.lower() == a.only.lower()}
+        items = exact or {k: v for k, v in items.items() if a.only.lower() in k.lower()}
+    if not items:
+        sys.exit("nothing to prepare: no classes found (is data/configs.json present?)")
+    print(f"{len(items)} classes to prepare from {a.render}")
 
     files = p3d.Files(a.render)
     by_model = {}
@@ -187,6 +218,7 @@ def main():
             stats["failed"] += 1
             print(f"failed   {cls}: {e}")
     print(stats)
+    print(f"work tree: {a.work}  (next: pipeline\\render.bat, or blender -b --factory-startup -P pipeline/blender_render.py -- --work {a.work} --out media)")
 
 
 if __name__ == "__main__":
