@@ -85,10 +85,11 @@ class Reader:
         return self.raw(n)
 
     def condensed(self, count, size):
-        """CondensedArray: a fill flag, then one element for all, or the array."""
+        """CondensedArray: a fill flag (present even when empty), then one element for all, or the array."""
+        fill = self.u8()
         if count == 0:
             return b""
-        if self.u8():
+        if fill:
             return self.raw(size) * count
         return self.compressed(count, size)
 
@@ -268,11 +269,11 @@ def read_animations(r, nlods):
         a["sourceAddress"] = r.u32()
         t = a["type"]
         if t <= 7:
-            r.f32(2)
+            r.f32(2)                           # angle0/angle1 or offset0/offset1
         elif t == 8:
-            r.f32(8)
+            r.f32(8)                           # direct: axis pos, axis dir, angle, axis offset
         elif t == 9:
-            r.f32(2)
+            r.f32(1)                           # hide: hide value only
         anims.append(a)
     nlods = r.u32()
     for _ in range(nlods):                     # bones -> animations
