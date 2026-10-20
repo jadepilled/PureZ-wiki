@@ -24,11 +24,15 @@ def header(path):
         return b""
 
 
-def run(exe, path, timeout, settle):
-    """Run a converter on one file. True when the file is MLOD afterwards."""
+def run(exe, path, timeout, settle, log=None):
+    """Run a converter on one file. True when the file is MLOD afterwards (in place, or written as a
+    sibling file that is then moved over the original, the ODOL kept as <name>.odol)."""
+    folder = os.path.dirname(path)
+    before = snapshot(folder)
     try:
-        subprocess.run([exe, path], timeout=timeout, cwd=os.path.dirname(path),
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        r = subprocess.run([exe, path], timeout=timeout, cwd=folder, capture_output=True, text=True, errors="replace")
+        if log is not None and (r.stdout or r.stderr):
+            log.write((r.stdout + r.stderr).strip() + "\n")
     except subprocess.TimeoutExpired:
         return False
     except OSError as e:
@@ -39,7 +43,64 @@ def run(exe, path, timeout, settle):
         if header(path) == b"MLOD":
             return True
         time.sleep(0.25)
-    return header(path) == b"MLOD"
+    if header(path) == b"MLOD":
+        return True
+    # written next to the original under another name?
+    stem = os.path.splitext(os.path.basename(path))[0].lower()
+    for f, (size, mtime) in snapshot(folder).items():
+        if before.get(f) != (size, mtime) and f.lower() != os.path.basename(path).lower() and stem in f.lower():
+            full = os.path.join(folder, f)
+            if header(full) == b"MLOD":
+                os.replace(path, path[:-4] + ".odol")
+                os.replace(full, path)
+                return True
+    return False
+
+
+def snapshot(folder):
+    out = {}
+    for f in os.listdir(folder):
+        try:
+            st = os.stat(os.path.join(folder, f))
+            out[f] = (st.st_size, st.st_mtime)
+        except OSError:
+            pass
+    return out
+
+
+def probe(a, odol):
+    """Show exactly what the converter does with one file, in a scratch copy."""
+    import shutil, tempfile
+    print(f"exe: {a.exe}  ({os.path.getsize(a.exe) if os.path.exists(a.exe) else 'missing'} bytes)")
+    print("--- running with no arguments (usage text, if any)")
+    try:
+        r = subprocess.run([a.exe], timeout=15, capture_output=True, text=True, errors="replace")
+        print(f"exit {r.returncode}\n{(r.stdout + r.stderr).strip()[:2000]}")
+    except Exception as e:
+        print(f"  {e}")
+    src = odol[0]
+    work = tempfile.mkdtemp(prefix="deodol_probe_")
+    copy = os.path.join(work, os.path.basename(src))
+    shutil.copy2(src, copy)
+    for label, cmd in (("one argument", [a.exe, copy]), ("input and output", [a.exe, copy, copy[:-4] + "_mlod.p3d"])):
+        print(f"--- {label}: {' '.join(cmd)}")
+        before = {d: snapshot(d) for d in (work, os.path.dirname(a.exe), os.getcwd())}
+        t0 = time.time()
+        try:
+            r = subprocess.run(cmd, timeout=a.timeout, cwd=work, capture_output=True, text=True, errors="replace")
+            print(f"exit {r.returncode} after {time.time() - t0:.1f}s\n{(r.stdout + r.stderr).strip()[:2000]}")
+        except subprocess.TimeoutExpired:
+            print("  timed out")
+        except OSError as e:
+            print(f"  cannot run: {e}")
+        time.sleep(a.settle)
+        print(f"  {os.path.basename(copy)} header now: {header(copy)!r}")
+        for d, snap in before.items():
+            for f, st in snapshot(d).items():
+                if snap.get(f) != st:
+                    full = os.path.join(d, f)
+                    print(f"  new or changed: {full}  header {header(full)!r}  {os.path.getsize(full)} bytes")
+    print(f"scratch folder kept at {work}")
 
 
 def main():
@@ -50,6 +111,7 @@ def main():
     ap.add_argument("--timeout", type=int, default=120, help="seconds per file per converter")
     ap.add_argument("--settle", type=float, default=3, help="seconds to wait for the output after the converter returns")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--probe", action="store_true", help="try the converter on one file in a scratch folder and show everything it does")
     a = ap.parse_args()
 
     if not os.path.isdir(a.root):
@@ -62,16 +124,18 @@ def main():
     files = [os.path.join(d, f) for d, _, fs in os.walk(a.root) for f in fs if f.lower().endswith(".p3d")]
     odol = [f for f in files if header(f) == b"ODOL"]
     print(f"{len(files)} models, {len(odol)} still ODOL")
+    if a.probe and odol:
+        return probe(a, odol)
     if a.dry_run or not odol:
         return
     log = open(os.path.join(a.root, "deodol.log"), "a", encoding="utf-8")
     done, fell_back, failed = 0, 0, []
     for i, path in enumerate(odol, 1):
         rel = os.path.relpath(path, a.root)
-        if run(a.exe, path, a.timeout, a.settle):
+        if run(a.exe, path, a.timeout, a.settle, log):
             done += 1
             log.write(f"ok  {rel}\n")
-        elif os.path.exists(a.fallback) and run(a.fallback, path, a.timeout, a.settle):
+        elif os.path.exists(a.fallback) and run(a.fallback, path, a.timeout, a.settle, log):
             done += 1
             fell_back += 1
             log.write(f"ok  {rel}  (fallback)\n")
@@ -80,6 +144,9 @@ def main():
             log.write(f"FAIL {rel}\n")
         if i % 25 == 0 or i == len(odol):
             print(f"  {i}/{len(odol)}  converted {done}, via fallback {fell_back}, failed {len(failed)}")
+        if i == 10 and done == 0:
+            print("  nothing converted yet: stopping. Run with --probe to see what the converter does, and check deodol.log for its messages.")
+            break
         log.flush()
     log.close()
     if failed:
