@@ -87,6 +87,21 @@
     audio.play();
   }));
 
+  // Collapsed sections stay collapsed on the next page (per heading)
+  let closed = {};
+  try { closed = JSON.parse(localStorage.getItem("pz-wiki-closed") || "{}"); } catch {}
+  document.querySelectorAll("details.block, details.group").forEach((d) => {
+    const key = (d.querySelector("summary h2") || {}).textContent;
+    if (!key) return;
+    if (closed[key]) d.open = false;
+    d.addEventListener("toggle", () => {
+      if (d.open) delete closed[key]; else closed[key] = 1;
+      try { localStorage.setItem("pz-wiki-closed", JSON.stringify(closed)); } catch {}
+    });
+  });
+  // a group opened by its anchor is always shown
+  if (location.hash) { const t = document.querySelector(location.hash); if (t && t.tagName === "DETAILS") t.open = true; }
+
   // List filters
   document.querySelectorAll("input[data-filter]").forEach((f) => {
     const rows = [...document.querySelectorAll(f.dataset.filter)];

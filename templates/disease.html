@@ -10,8 +10,8 @@
 {% if body %}<section class="prose lead-prose">{{ body | safe }}</section>{% endif %}
 
 {% if A %}
-<section class="block">
-  <h2>Infection</h2>
+<details class="block" open>
+  <summary><h2>Infection</h2></summary>
   <dl class="facts row">
     {% if D.activate %}{{ stat("Symptoms start at", D.activate ~ " agents", "of " ~ A.MaxCount ~ " max") }}{% endif %}
     {% if D.deactivate is number %}{{ stat("Symptoms stop below", D.deactivate ~ " agents") }}{% endif %}
@@ -23,28 +23,28 @@
   {% if D.activate and A.Invasibility %}
   <p class="note">At the base growth rate an infection takes about {{ ((D.activate / A.Invasibility) / 60) | round | int }} min to go from zero to symptoms.{% if A.potency == "great" %} Immunity alone never stops it.{% endif %}</p>
   {% endif %}
-</section>
+</details>
 {% endif %}
 
 {% if D.treatments %}
-<section class="block">
-  <h2>Treatment</h2>
+<details class="block" open>
+  <summary><h2>Treatment</h2></summary>
   <table class="data">
     <thead><tr><th>Item</th><th class="n">Cleared per dose</th><th class="n">Doses from symptoms</th><th class="n">Resistance</th></tr></thead>
     <tbody>
     {% for t in D.treatments %}<tr><td>{{ itemlink(t.item) }}{% if t.drug != "direct" %} <span class="muted">{{ t.drug }}</span>{% endif %}</td><td class="n">{{ t.perDose }}{% if t.delay %} <span class="muted">after {{ t.delay }} s</span>{% endif %}{% if t.varies %} <span class="muted">approx.</span>{% endif %}</td><td class="n">{{ t.doses or "–" }}</td><td class="n">{{ t.resistance | pct }}</td></tr>{% endfor %}
     </tbody>
   </table>
-</section>
+</details>
 {% endif %}
 
 {% if D.constants %}
-<section class="block">
-  <h2>Effects</h2>
+<details class="block" open>
+  <summary><h2>Effects</h2></summary>
   <table class="data">
     <tbody>{% for label, v, unit in D.constants %}<tr><td>{{ label }}</td><td class="n">{{ v | unit(unit) }}</td></tr>{% endfor %}</tbody>
   </table>
-</section>
+</details>
 {% endif %}
 
 {% endblock %}

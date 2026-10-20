@@ -51,17 +51,17 @@
 </div>
 
 {% if W and W.sounds %}
-<section class="block">
-  <h2>Sound</h2>
+<details class="block" open>
+  <summary><h2>Sound</h2></summary>
   <div class="sounds">
     {% for s in W.sounds %}<button type="button" class="play" data-src="{{ s.file }}"><span aria-hidden="true">▶</span> {{ s.label | humanize }}</button>{% endfor %}
   </div>
-</section>
+</details>
 {% endif %}
 
 {% if W and (W.modes or W.recoil) %}
-<section class="block">
-  <h2>Handling</h2>
+<details class="block" open>
+  <summary><h2>Handling</h2></summary>
   {% if F.zeroing %}<p class="note">Zeroing: {{ F.zeroing | join(", ") }} m</p>{% endif %}
   {% if W.modes %}
   <table class="data">
@@ -93,12 +93,12 @@
     {% endif %}
   </div>
   {% endif %}
-</section>
+</details>
 {% endif %}
 
 {% if B %}
-<section class="block">
-  <h2>Ballistics</h2>
+<details class="block" open>
+  <summary><h2>Ballistics</h2></summary>
   <dl class="facts row">
     {% for k, v in B.damage.items() %}{% if v is not none %}{{ stat(k ~ " damage", v | num) }}{% endif %}{% endfor %}
     {% if B.initSpeed %}{{ stat("Muzzle velocity", B.initSpeed ~ " m/s") }}{% endif %}
@@ -110,71 +110,90 @@
     </tbody>
   </table>
   <p class="note">Zeroed at {{ B.table.zero }} m. Drop is relative to the line of sight.</p>
-</section>
+</details>
+{% endif %}
+
+{% if ammoVariants %}
+<details class="block" open>
+  <summary><h2>Variants</h2></summary>
+  {% for v in ammoVariants %}
+  <section class="variant">
+    <h3>{{ v.role }} <small class="muted">{{ v.title }}</small></h3>
+    {% if v.description %}<p class="muted">{{ v.description }}</p>{% endif %}
+    <dl class="facts row">
+      {% if v.count %}{{ stat("Rounds", v.count) }}{% endif %}
+      {% if v.weight %}{{ stat("Weight", v.weight | unit("g")) }}{% endif %}
+      {% if v.damage %}{% for k, d in v.damage.items() %}{% if d is not none %}{{ stat(k ~ " damage", d | num) }}{% endif %}{% endfor %}{% endif %}
+      {% if v.initSpeed %}{{ stat("Muzzle velocity", v.initSpeed ~ " m/s") }}{% endif %}
+      {% if v.nominal %}{{ stat("On the map", v.nominal ~ (" item" if v.nominal == 1 else " items")) }}{% endif %}
+    </dl>
+  </section>
+  {% endfor %}
+</details>
 {% endif %}
 
 {% if (W and W.magazines) or F.chambers %}
-<section class="block">
-  <h2>Ammunition</h2>
+<details class="block" open>
+  <summary><h2>Ammunition</h2></summary>
   {% if F.chambers %}<h3>Rounds</h3><ul class="links">{% for m in F.chambers %}<li>{{ itemlink(m) }}</li>{% endfor %}</ul>{% endif %}
   {% if W and W.magazines %}<h3>Magazines</h3><ul class="links">{% for m in W.magazines %}<li>{{ itemlink(m) }}</li>{% endfor %}</ul>{% endif %}
-</section>
+</details>
 {% endif %}
 
 {% if F.attachments %}
-<section class="block">
-  <h2>Attachments</h2>
+<details class="block" open>
+  <summary><h2>Attachments</h2></summary>
   <table class="data">
     <tbody>{% for g in F.attachments %}<tr><td class="w-chance">{{ g.group }}</td><td>{% for i in g["items"] %}{{ itemlink(i) }}{% if not loop.last %}<span class="sep">·</span>{% endif %}{% endfor %}</td></tr>{% endfor %}</tbody>
   </table>
-</section>
+</details>
 {% endif %}
 
 {% if F.fits or F.sameRound %}
-<section class="block">
-  <h2>Fits</h2>
+<details class="block" open>
+  <summary><h2>Fits</h2></summary>
   {% if F.fits %}<ul class="links">{% for i in F.fits %}<li>{{ itemlink(i) }}</li>{% endfor %}</ul>{% else %}<p class="muted">Nothing on PureZ uses it.</p>{% endif %}
   {% if F.sameRound %}<h3>Same round</h3><ul class="links">{% for i in F.sameRound %}<li>{{ itemlink(i) }}</li>{% endfor %}</ul>{% endif %}
-</section>
+</details>
 {% endif %}
 
 {% if F.armor %}
-<section class="block">
-  <h2>Protection</h2>
+<details class="block" open>
+  <summary><h2>Protection</h2></summary>
   <table class="data">
     <thead><tr><th>Against</th><th class="n">Health damage blocked</th><th class="n">Shock blocked</th></tr></thead>
     <tbody>{% for r in F.armor %}<tr><td>{{ r.label }}</td><td class="n">{{ r.health | pct }}</td><td class="n">{{ r.shock | pct }}</td></tr>{% endfor %}</tbody>
   </table>
-</section>
+</details>
 {% endif %}
 
 {% if F.nutrition %}
-<section class="block">
-  <h2>Nutrition</h2>
+<details class="block" open>
+  <summary><h2>Nutrition</h2></summary>
   <dl class="facts row">{% for label, v in F.nutrition %}{{ stat(label, v) }}{% endfor %}</dl>
-</section>
+</details>
 {% endif %}
 
 {% if F.melee %}
-<section class="block">
-  <h2>Melee</h2>
+<details class="block" open>
+  <summary><h2>Melee</h2></summary>
   <table class="data">
     <thead><tr><th>Swing</th><th class="n">Health</th><th class="n">Shock</th><th class="n">Reach</th></tr></thead>
     <tbody>{% for m in F.melee %}<tr><td>{{ m.name }}</td><td class="n">{{ m.health | num }}</td><td class="n">{{ m.shock | num }}</td><td class="n">{{ m.range | num(1) }} m</td></tr>{% endfor %}</tbody>
   </table>
-</section>
+</details>
 {% endif %}
 
 {% if F.holds %}
-<section class="block">
-  <h2>Can hold</h2>
+<details class="block" open>
+  <summary><h2>Can hold</h2></summary>
   <ul class="links">{% for i in F.holds %}<li>{{ itemlink(i) }}</li>{% endfor %}</ul>
-</section>
+</details>
 {% endif %}
 
 {% if L and L.attachments %}
-<section class="block">
-  <h2>Spawns with</h2>
+<details class="block" open>
+  <summary><h2>Spawns with</h2></summary>
   <table class="data">
     <tbody>
     {% for g in L.attachments %}
@@ -185,12 +204,12 @@
     {% endfor %}
     </tbody>
   </table>
-</section>
+</details>
 {% endif %}
 
 {% if L %}
-<section class="block">
-  <h2>Loot</h2>
+<details class="block" open>
+  <summary><h2>Loot</h2></summary>
   <div class="loot">
     <div>
       <h3>Condition</h3>
@@ -212,12 +231,12 @@
   <h3>Worn or carried by infected</h3>
   <ul class="carried">{% for g, c in L.carried %}<li><span>{{ g }}</span><b>{{ c | pct(1) }}</b></li>{% endfor %}</ul>
   {% endif %}
-</section>
+</details>
 {% endif %}
 
 {% if V %}
-<section class="block">
-  <h2>Spawning</h2>
+<details class="block" open>
+  <summary><h2>Spawning</h2></summary>
   <dl class="facts row">
     {{ stat("Spawn points", V.positions ~ " locations") }}
     {{ stat("Condition", V.condition.label) }}
@@ -231,12 +250,12 @@
   <h3>Spawns fitted with</h3>
   <ul class="links cols">{% for p in V.parts %}<li>{{ itemlink(p) }}{% if p.n > 1 %} <span class="muted">×{{ p.n }}</span>{% endif %}{% if p.chance < 1 %} <span class="muted">{{ p.chance | pct }}</span>{% endif %}</li>{% endfor %}</ul>
   {% endif %}
-</section>
+</details>
 {% endif %}
 
 {% if item.medical %}
-<section class="block">
-  <h2>Effect</h2>
+<details class="block" open>
+  <summary><h2>Effect</h2></summary>
   {% for m in item.medical %}
   <dl class="facts row">
     {% if m.duration %}{{ stat("Lasts", m.duration | duration) }}{% endif %}
@@ -251,12 +270,12 @@
   <p class="note">Agents one dose removes. The infection's own growth or die-off runs alongside.</p>
   {% endif %}
   {% endfor %}
-</section>
+</details>
 {% endif %}
 
 {% if item.recipes %}
-<section class="block">
-  <h2>Crafting</h2>
+<details class="block" open>
+  <summary><h2>Crafting</h2></summary>
   {% for label, rs in (("Made from", item.recipes.made), ("Used in", item.recipes.used)) %}{% if rs %}
   <h3>{{ label }}</h3>
   <ul class="recipes compact">
@@ -267,13 +286,13 @@
     </li>{% endfor %}
   </ul>
   {% endif %}{% endfor %}
-</section>
+</details>
 {% endif %}
 
 {% if body %}
-<section class="block prose">
-  <h2>Notes</h2>
+<details class="block prose" open>
+  <summary><h2>Notes</h2></summary>
   {{ body | safe }}
-</section>
+</details>
 {% endif %}
 {% endblock %}

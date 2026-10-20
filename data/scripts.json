@@ -107,6 +107,23 @@
     "antibiotics": 1
    }
   },
+  "eyes_irritation": {
+   "class": "EyesIrritationAgent",
+   "Invasibility": 0,
+   "TransferabilityIn": 1,
+   "TransferabilityOut": 0,
+   "MaxCount": 100,
+   "Digestibility": 0,
+   "AutoinfectCount": 0,
+   "TransferabilityAirOut": 0,
+   "DieOffSpeed": 0.3,
+   "potency": "low",
+   "dynamicGrowth": true,
+   "drugResistance": {
+    "chelation": 1,
+    "antibiotics": 1
+   }
+  },
   "heavymetal": {
    "class": "HeavyMetalAgent",
    "TransferabilityIn": 0.5,
@@ -134,6 +151,23 @@
    "drugResistance": {
     "chelation": 1,
     "antibiotics": 0
+   }
+  },
+  "silicosis": {
+   "class": "SilicosisAgent",
+   "Invasibility": 0,
+   "TransferabilityIn": 3.5,
+   "TransferabilityOut": 0,
+   "MaxCount": 1000,
+   "Digestibility": 0,
+   "AutoinfectCount": 0,
+   "TransferabilityAirOut": 0,
+   "DieOffSpeed": 0.9,
+   "potency": "low",
+   "dynamicGrowth": true,
+   "drugResistance": {
+    "chelation": 1,
+    "antibiotics": 1
    }
   }
  },
@@ -720,6 +754,28 @@
    "drugs": [],
    "stats": []
   },
+  "mdf_sandstorm_exposure_static": {
+   "class": "SandstormZoneSmall_TESTONLY",
+   "kind": "condition",
+   "constants": {
+    "SILICOSIS_AGENTS_PER_SEC": 1,
+    "EYES_IRRITATION_AGENTS_PER_SEC": 1,
+    "COUGH_INTERVAL_MIN": 3,
+    "COUGH_INTERVAL_MAX": 25
+   },
+   "tickActive": null,
+   "persistent": false,
+   "agents": [
+    "eyes_irritation",
+    "silicosis"
+   ],
+   "symptoms": [
+    "cough",
+    "squint"
+   ],
+   "drugs": [],
+   "stats": []
+  },
   "mdf_heart_attack": {
    "class": "HeartAttackMdfr",
    "kind": "condition",
@@ -857,6 +913,21 @@
    "drugs": [],
    "stats": []
   },
+  "mdf_particles_eyes": {
+   "class": "IrritatedEyesMdfr",
+   "kind": "disease",
+   "constants": {},
+   "tickActive": 5,
+   "persistent": false,
+   "agents": [
+    "eyes_irritation"
+   ],
+   "symptoms": [
+    "irritated_eyes"
+   ],
+   "drugs": [],
+   "stats": []
+  },
   "mdf_wound_infection1": {
    "class": "WoundInfectionMdfr",
    "kind": "disease",
@@ -964,6 +1035,42 @@
     "heavymetal": null
    }
   },
+  "mdf_heat_stroke1": {
+   "class": "HeatStrokeMdfr",
+   "kind": "disease",
+   "constants": {
+    "NUMBER_OF_STAGES": 4,
+    "WATER_DRAIN_FROM_FEVER_ST1": 0.35,
+    "WATER_DRAIN_FROM_FEVER_ST2": 0.5,
+    "WATER_DRAIN_FROM_FEVER_ST3": 0.75,
+    "ENERGY_DRAIN_FROM_FEVER": 1,
+    "VOMIT_OCCURRENCES_MIN": 1,
+    "VOMIT_OCCURRENCES_MAX": 2,
+    "WATER_DRAIN_FROM_VOMIT": 70,
+    "ENERGY_DRAIN_FROM_VOMIT": 55,
+    "UNCONSCIOUSNESS_LENGTH_MIN": 5,
+    "UNCONSCIOUSNESS_LENGTH_MAX": 10,
+    "UNCONSCIOUSNESS_EVENT_INTERVAL_MIN": 60,
+    "UNCONSCIOUSNESS_EVENT_INTERVAL_MAX": 120,
+    "SHOCK_ACTIVATION_THRESHOLD_MIN": 90,
+    "HEALTH_DAMAGE_MIN": 0.01,
+    "HEALTH_DAMAGE_MAX": 0.35
+   },
+   "tickActive": null,
+   "persistent": false,
+   "agents": [],
+   "symptoms": [
+    "faint",
+    "feverblur",
+    "hot",
+    "vomit"
+   ],
+   "drugs": [],
+   "stats": [
+    "Energy",
+    "Water"
+   ]
+  },
   "mdf_wound_infection2": {
    "class": "WoundInfectStage2Mdfr",
    "kind": "disease",
@@ -1056,6 +1163,33 @@
    "drugs": [],
    "stats": []
   },
+  "mdf_particles_breath": {
+   "class": "SilicosisMdfr",
+   "kind": "disease",
+   "constants": {
+    "STAMINA_LIMIT_TRESHOLD": 600,
+    "HEALTH_THRESHOLD": 700,
+    "UNCON_THRESHOLD": 800,
+    "UNCONSCIOUSNESS_LENGTH_MIN": 5,
+    "UNCONSCIOUSNESS_LENGTH_MAX": 10,
+    "UNCONSCIOUSNESS_EVENT_INTERVAL_MIN": 60,
+    "UNCONSCIOUSNESS_EVENT_INTERVAL_MAX": 120,
+    "HEALTH_LOSS": 2,
+    "HEAVY_BREATH_TRESHOLD_MIN": 200,
+    "HEAVY_BREATH_INTERVAL_MIN": 3,
+    "HEAVY_BREATH_INTERVAL_MAX": 25
+   },
+   "tickActive": 5,
+   "persistent": false,
+   "agents": [
+    "silicosis"
+   ],
+   "symptoms": [
+    "faint"
+   ],
+   "drugs": [],
+   "stats": []
+  },
   "mdf_contamination3": {
    "class": "ContaminationStage3Mdfr",
    "kind": "disease",
@@ -1077,6 +1211,9 @@
   }
  },
  "itemModifiers": {
+  "DayZPlayerImplement": [
+   "mdf_unconsciousness"
+  ],
   "ChelatingTablets": [
    "mdf_chelation"
   ],
@@ -1136,6 +1273,45 @@
       -0.1
      ],
      "y": 0.75
+    }
+   ]
+  },
+  "LugerRecoil": {
+   "HandsOffsetRelativeTime": 0.5,
+   "MouseOffsetRangeMin": 75,
+   "MouseOffsetRangeMax": 95,
+   "MouseOffsetDistance": 0.95,
+   "MouseOffsetRelativeTime": 0.5,
+   "CamOffsetDistance": 0.02,
+   "CamOffsetRelativeTime": 1,
+   "curve": [
+    {
+     "x": [
+      1.5,
+      3
+     ],
+     "y": 3
+    },
+    {
+     "x": [
+      -1,
+      1
+     ],
+     "y": 4
+    },
+    {
+     "x": [
+      -4,
+      -2
+     ],
+     "y": 2
+    },
+    {
+     "x": [
+      -0.6,
+      -0.2
+     ],
+     "y": 1
     }
    ]
   },
@@ -1331,6 +1507,45 @@
       -0.1
      ],
      "y": 0.75
+    }
+   ]
+  },
+  "MP18Recoil": {
+   "HandsOffsetRelativeTime": 0.3,
+   "MouseOffsetRangeMin": 90,
+   "MouseOffsetRangeMax": 110,
+   "MouseOffsetDistance": 0.9,
+   "MouseOffsetRelativeTime": 0.5,
+   "CamOffsetDistance": 0.005,
+   "CamOffsetRelativeTime": 0.5,
+   "curve": [
+    {
+     "x": [
+      0.4,
+      1.15
+     ],
+     "y": 0.9
+    },
+    {
+     "x": [
+      -0.85,
+      0.55
+     ],
+     "y": 0.85
+    },
+    {
+     "x": [
+      -1.15,
+      -0.5
+     ],
+     "y": 0.95
+    },
+    {
+     "x": [
+      -0.5,
+      -0.1
+     ],
+     "y": 0.6
     }
    ]
   },
@@ -1767,7 +1982,7 @@
    "HandsOffsetRelativeTime": 0.5,
    "MouseOffsetRangeMin": 65,
    "MouseOffsetRangeMax": 145,
-   "MouseOffsetDistance": 1.4,
+   "MouseOffsetDistance": 1.6,
    "MouseOffsetRelativeTime": 0.5,
    "CamOffsetDistance": 0.01,
    "CamOffsetRelativeTime": 1,
@@ -1838,6 +2053,45 @@
       -0.15
      ],
      "y": 0.5
+    }
+   ]
+  },
+  "LeeEnfieldRecoil": {
+   "HandsOffsetRelativeTime": 0.125,
+   "MouseOffsetRangeMin": 80,
+   "MouseOffsetRangeMax": 100,
+   "MouseOffsetDistance": 1.6,
+   "MouseOffsetRelativeTime": 0.0625,
+   "CamOffsetDistance": 0.02,
+   "CamOffsetRelativeTime": 0.125,
+   "curve": [
+    {
+     "x": [
+      0.25,
+      0.5
+     ],
+     "y": 1.75
+    },
+    {
+     "x": [
+      -0.25,
+      0.25
+     ],
+     "y": 2
+    },
+    {
+     "x": [
+      -0.5,
+      -0.25
+     ],
+     "y": 1.5
+    },
+    {
+     "x": [
+      -0.25,
+      -0.1
+     ],
+     "y": 0.75
     }
    ]
   },
@@ -1962,7 +2216,7 @@
    "HandsOffsetRelativeTime": 0.5,
    "MouseOffsetRangeMin": 90,
    "MouseOffsetRangeMax": 120,
-   "MouseOffsetDistance": 1.4,
+   "MouseOffsetDistance": 1.5,
    "MouseOffsetRelativeTime": 0.5,
    "CamOffsetDistance": 0.01,
    "CamOffsetRelativeTime": 1,
@@ -2377,6 +2631,45 @@
       -0.5
      ],
      "y": 1.75
+    },
+    {
+     "x": [
+      -0.5,
+      -0.1
+     ],
+     "y": 0.75
+    }
+   ]
+  },
+  "SCARLRecoil": {
+   "HandsOffsetRelativeTime": 0.5,
+   "MouseOffsetRangeMin": 90,
+   "MouseOffsetRangeMax": 120,
+   "MouseOffsetDistance": 1.5,
+   "MouseOffsetRelativeTime": 0.5,
+   "CamOffsetDistance": 0.01,
+   "CamOffsetRelativeTime": 1,
+   "curve": [
+    {
+     "x": [
+      0.33,
+      0.75
+     ],
+     "y": 1.3
+    },
+    {
+     "x": [
+      -0.5,
+      0.5
+     ],
+     "y": 1.6
+    },
+    {
+     "x": [
+      -1.5,
+      -1
+     ],
+     "y": 1.3
     },
     {
      "x": [
@@ -3072,6 +3365,7 @@
   "R12": "R12Recoil",
   "SSG82_Base": "SSG82Recoil",
   "Scout_Base": "ScoutRecoil",
+  "LeeEnfield_Base": "LeeEnfieldRecoil",
   "Izh18_Base": "Izh18Recoil",
   "SawedoffIzh18": "Izh18SawedOffRecoil",
   "Ruger1022_Base": "Ruger1022Recoil",
@@ -3095,12 +3389,16 @@
   "Vikhr": "VSSRecoil",
   "MP5K_Base": "Mp5kRecoil",
   "CZ61_Base": "Cz61Recoil",
+  "MP18_Base": "MP18Recoil",
   "UMP45_Base": "Ump45Recoil",
   "PP19_Base": "PP19Recoil",
   "M79_Base": "M79Recoil",
   "M79": "M79Recoil",
   "SKS_Base": "SKSRecoil",
+  "SCARL_Base": "SCARLRecoil",
   "AKM_Base": "AkmRecoil",
+  "AKM": "AkmRecoil",
+  "AKM_Gold": "AkmRecoil",
   "SCARH_Base": "SCARHRecoil",
   "AK74_Base": "Ak74Recoil",
   "AK74": "Ak74Recoil",
@@ -3135,6 +3433,8 @@
   "Deagle_Base": "DEagleRecoil",
   "Deagle": "DEagleRecoil",
   "Deagle_Gold": "DEagleRecoil",
+  "Luger_Base": "LugerRecoil",
+  "Luger": "LugerRecoil",
   "Glock19_Base": "GlockRecoil",
   "MKII_Base": "MkiiRecoil",
   "MakarovIJ70_Base": "MakarovRecoil",
@@ -3143,10 +3443,13 @@
   "Magnum_Base": "MagnumRecoil",
   "Magnum": "MagnumRecoil",
   "SawedoffMagnum": "MagnumRecoil",
+  "Magnum_Gold": "MagnumRecoil",
+  "SawedoffMagnum_Gold": "MagnumRecoil",
   "Mp133Shotgun": "Mp133Recoil",
   "Izh18Shotgun": "Izh18ShotgunRecoil",
   "SSG82": "SSG82Recoil",
   "Scout": "ScoutRecoil",
+  "LeeEnfield": "LeeEnfieldRecoil",
   "Izh18": "Izh18Recoil",
   "Ruger1022": "Ruger1022Recoil",
   "Winchester70": "Winchester70Recoil",
@@ -3157,10 +3460,11 @@
   "PM73Rak": "PM73RakRecoil",
   "MP5K": "Mp5kRecoil",
   "CZ61": "Cz61Recoil",
+  "MP18": "MP18Recoil",
   "UMP45": "Ump45Recoil",
   "PP19": "PP19Recoil",
   "SKS": "SKSRecoil",
-  "AKM": "AkmRecoil",
+  "SCARL": "SCARLRecoil",
   "SCARH": "SCARHRecoil",
   "FAL": "FALRecoil",
   "M14": "M14Recoil",
@@ -3354,9 +3658,11 @@
      "WaterBottle",
      "FilteringBottle",
      "GlassBottle",
+     "WineBottle",
      "WaterPouch_ColorBase",
      "Barrel_ColorBase",
-     "Cauldron"
+     "Cauldron",
+     "AyranBottle"
     ]
    ],
    "results": [],
@@ -3394,7 +3700,8 @@
      "FilteringBottle",
      "GlassBottle",
      "WaterPouch_ColorBase",
-     "Barrel_ColorBase"
+     "Barrel_ColorBase",
+     "AyranBottle"
     ]
    ],
    "results": [],
@@ -3437,6 +3744,33 @@
     -1,
     -1
    ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    0,
+    0
+   ],
+   "ingredientDestroy": [
+    false,
+    false
+   ]
+  },
+  {
+   "class": "CloseGunCase",
+   "name": "#lock",
+   "ingredients": [
+    [
+     "GunCase_ColorBase"
+    ],
+    [
+     "GunCaseKeys_Colorbase"
+    ]
+   ],
+   "results": [],
+   "instant": false,
+   "animationLength": 1,
    "maxDamageIngredient": [
     3,
     3
@@ -3494,6 +3828,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -3509,7 +3844,10 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -3584,6 +3922,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -3599,7 +3938,9 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -3827,90 +4168,6 @@
    ]
   },
   {
-   "class": "CraftBolt",
-   "name": "#STR_CraftBolt0",
-   "ingredients": [
-    [
-     "WoodenStick"
-    ],
-    [
-     "Sickle",
-     "KukriKnife",
-     "FangeKnife",
-     "KitchenKnife",
-     "SteakKnife",
-     "StoneKnife",
-     "Cleaver",
-     "CombatKnife",
-     "HuntingKnife",
-     "Machete",
-     "CrudeMachete",
-     "OrientalMachete",
-     "WoodAxe",
-     "Hatchet",
-     "FirefighterAxe",
-     "AK_Bayonet",
-     "M9A1_Bayonet",
-     "SKS_Bayonet",
-     "BoneKnife"
-    ]
-   ],
-   "results": [
-    "Ammo_ImprovisedBolt_1"
-   ],
-   "instant": false,
-   "animationLength": 1.5,
-   "minQuantityIngredient": [
-    1,
-    -1
-   ],
-   "maxDamageIngredient": [
-    3,
-    3
-   ],
-   "ingredientAddQuantity": [
-    -1,
-    0
-   ],
-   "ingredientDestroy": [
-    false,
-    false
-   ]
-  },
-  {
-   "class": "CraftBoltFeather",
-   "name": "#STR_CraftBolt1",
-   "ingredients": [
-    [
-     "Ammo_ImprovisedBolt_1"
-    ],
-    [
-     "ChickenFeather"
-    ]
-   ],
-   "results": [
-    "Ammo_ImprovisedBolt_2"
-   ],
-   "instant": false,
-   "animationLength": 1.5,
-   "minQuantityIngredient": [
-    1,
-    1
-   ],
-   "maxDamageIngredient": [
-    3,
-    3
-   ],
-   "ingredientAddQuantity": [
-    -1,
-    -1
-   ],
-   "ingredientDestroy": [
-    false,
-    false
-   ]
-  },
-  {
    "class": "CraftBoneBait",
    "name": "#STR_CraftBoneBait0",
    "ingredients": [
@@ -3962,6 +4219,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -3978,7 +4236,11 @@
      "Mosin_Bayonet",
      "SKS_Bayonet",
      "BoneKnife",
-     "Iceaxe"
+     "Iceaxe",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -4087,6 +4349,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -4103,7 +4366,11 @@
      "Mosin_Bayonet",
      "SKS_Bayonet",
      "BoneKnife",
-     "Iceaxe"
+     "Iceaxe",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -4310,6 +4577,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "KukriKnife",
      "FangeKnife",
@@ -4331,9 +4599,14 @@
      "Shovel",
      "FieldShovel",
      "BoneKnife",
-     "Iceaxe"
+     "Iceaxe",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel"
     ],
-    []
+    [
+     "Akinaka"
+    ]
    ],
    "results": [
     "ChickenFeather"
@@ -4401,6 +4674,7 @@
      "ItemBook",
      "Bark_Birch",
      "Bark_Oak",
+     "Bark_Palm",
      "MorsecodeLeaflet_blood",
      "MorsecodeLeaflet_fire",
      "MorsecodeLeaflet_coffee"
@@ -4777,6 +5051,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -4790,7 +5065,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -4827,6 +5106,70 @@
    ],
    "results": [
     "HandDrillKit"
+   ],
+   "instant": false,
+   "animationLength": 0.5,
+   "minQuantityIngredient": [
+    1,
+    1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    -1,
+    -1
+   ],
+   "ingredientDestroy": [
+    false,
+    false
+   ]
+  },
+  {
+   "class": "CraftHandDrillKitBirch",
+   "name": "#STR_CraftHandDrillKit0",
+   "ingredients": [
+    [],
+    [
+     "WoodenStick",
+     "Ammo_SharpStick"
+    ]
+   ],
+   "results": [
+    "HandDrillKitBirch"
+   ],
+   "instant": false,
+   "animationLength": 0.5,
+   "minQuantityIngredient": [
+    1,
+    1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    -1,
+    -1
+   ],
+   "ingredientDestroy": [
+    false,
+    false
+   ]
+  },
+  {
+   "class": "CraftHandDrillKitPalm",
+   "name": "#STR_CraftHandDrillKit0",
+   "ingredients": [
+    [],
+    [
+     "WoodenStick",
+     "Ammo_SharpStick"
+    ]
+   ],
+   "results": [
+    "HandDrillKitPalm"
    ],
    "instant": false,
    "animationLength": 0.5,
@@ -4945,6 +5288,39 @@
    ]
   },
   {
+   "class": "CraftLeatherBelt",
+   "name": "#STR_CraftLeatherBelt0",
+   "ingredients": [
+    [
+     "LizardPelt"
+    ],
+    [
+     "LeatherSewingKit"
+    ]
+   ],
+   "results": [
+    "LeatherBelt_Lizard"
+   ],
+   "instant": false,
+   "animationLength": 1.5,
+   "minQuantityIngredient": [
+    -1,
+    -1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    -1,
+    -25
+   ],
+   "ingredientDestroy": [
+    true,
+    false
+   ]
+  },
+  {
    "class": "CraftLeatherCourierBag",
    "name": "#STR_CraftLeatherCourierBag0",
    "ingredients": [
@@ -4978,6 +5354,39 @@
    ]
   },
   {
+   "class": "CraftLeatherHippack",
+   "name": "#STR_CraftLeatherHippack0",
+   "ingredients": [
+    [
+     "LizardPelt"
+    ],
+    [
+     "LeatherSewingKit"
+    ]
+   ],
+   "results": [
+    "LeatherHippack_Lizard"
+   ],
+   "instant": false,
+   "animationLength": 1.5,
+   "minQuantityIngredient": [
+    -1,
+    -1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    -1,
+    -25
+   ],
+   "ingredientDestroy": [
+    true,
+    false
+   ]
+  },
+  {
    "class": "CraftLeatherSack",
    "name": "#STR_CraftLeatherSack0",
    "ingredients": [
@@ -5007,6 +5416,39 @@
    ],
    "ingredientDestroy": [
     false,
+    false
+   ]
+  },
+  {
+   "class": "CraftLeatherSheath",
+   "name": "#STR_CraftLeatherSheath0",
+   "ingredients": [
+    [
+     "LizardPelt"
+    ],
+    [
+     "LeatherSewingKit"
+    ]
+   ],
+   "results": [
+    "LizardKnifeSheath"
+   ],
+   "instant": false,
+   "animationLength": 1.5,
+   "minQuantityIngredient": [
+    -1,
+    -1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    -1,
+    -25
+   ],
+   "ingredientDestroy": [
+    true,
     false
    ]
   },
@@ -5078,6 +5520,48 @@
    ]
   },
   {
+   "class": "CraftMortarMix",
+   "name": "#STR_CraftMortarMix0",
+   "ingredients": [
+    [
+     "MortarMix"
+    ],
+    [
+     "Pot",
+     "CanisterGasoline",
+     "Canteen",
+     "WaterBottle",
+     "FilteringBottle",
+     "GlassBottle",
+     "WineBottle",
+     "WaterPouch_ColorBase",
+     "Barrel_ColorBase",
+     "AyranBottle"
+    ]
+   ],
+   "results": [
+    "MortarMix_Opened"
+   ],
+   "instant": false,
+   "animationLength": 2,
+   "minQuantityIngredient": [
+    1,
+    -1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    0,
+    0
+   ],
+   "ingredientDestroy": [
+    true,
+    false
+   ]
+  },
+  {
    "class": "CraftRabbitSnare",
    "name": "#STR_CraftRabbitSnare0",
    "ingredients": [
@@ -5124,6 +5608,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "KukriKnife",
      "FangeKnife",
@@ -5145,7 +5630,12 @@
      "Shovel",
      "FieldShovel",
      "BoneKnife",
-     "Iceaxe"
+     "Iceaxe",
+     "BrickTrowel",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ],
     []
    ],
@@ -5288,6 +5778,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -5304,7 +5795,11 @@
      "Mosin_Bayonet",
      "SKS_Bayonet",
      "BoneKnife",
-     "Iceaxe"
+     "Iceaxe",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -5696,6 +6191,39 @@
    ]
   },
   {
+   "class": "CraftWaterskin",
+   "name": "#STR_CraftWaterskin0",
+   "ingredients": [
+    [
+     "TannedLeather"
+    ],
+    [
+     "LeatherSewingKit"
+    ]
+   ],
+   "results": [
+    "Waterskin_Natural"
+   ],
+   "instant": false,
+   "animationLength": 1.5,
+   "minQuantityIngredient": [
+    -1,
+    -1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    -2,
+    -10
+   ],
+   "ingredientDestroy": [
+    false,
+    false
+   ]
+  },
+  {
    "class": "CraftWitchHoodCoif",
    "name": "#STR_CraftArmoredHood",
    "ingredients": [
@@ -5780,6 +6308,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -5796,7 +6325,11 @@
      "Mosin_Bayonet",
      "SKS_Bayonet",
      "BoneKnife",
-     "Iceaxe"
+     "Iceaxe",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -5874,6 +6407,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -5886,7 +6420,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -5928,6 +6466,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -5952,7 +6491,11 @@
      "FirefighterAxe",
      "Hatchet",
      "HandSaw",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -5997,6 +6540,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6009,7 +6553,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6053,6 +6601,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6068,7 +6617,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6112,6 +6665,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6127,7 +6681,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6171,6 +6729,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6186,7 +6745,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6230,6 +6793,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6246,7 +6810,11 @@
      "Mosin_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6290,6 +6858,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6305,7 +6874,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6350,6 +6923,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6365,7 +6939,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6409,6 +6987,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6424,7 +7003,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6469,6 +7052,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6484,7 +7068,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6528,6 +7116,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6543,7 +7132,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6620,6 +7213,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6635,7 +7229,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6680,6 +7278,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6695,7 +7294,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6740,6 +7343,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6755,7 +7359,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6800,6 +7408,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6815,7 +7424,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6860,6 +7473,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6875,7 +7489,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6920,6 +7538,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6934,7 +7553,11 @@
      "AK_Bayonet",
      "M9A1_Bayonet",
      "Mosin_Bayonet",
-     "SKS_Bayonet"
+     "SKS_Bayonet",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -6979,6 +7602,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -6994,7 +7618,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7039,6 +7667,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7054,7 +7683,139 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
+    ]
+   ],
+   "results": [
+    "WoodenStick"
+   ],
+   "instant": false,
+   "animationLength": 0.5,
+   "minQuantityIngredient": [
+    -1,
+    -1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    0,
+    0
+   ],
+   "ingredientDestroy": [
+    true,
+    false
+   ]
+  },
+  {
+   "class": "DeCraftHandDrillKitBirch",
+   "name": "#STR_breakdown0",
+   "ingredients": [
+    [
+     "HandDrillKitBirch"
+    ],
+    [
+     "Sickle",
+     "KukriKnife",
+     "FangeKnife",
+     "Hacksaw",
+     "HandSaw",
+     "KitchenKnife",
+     "SteakKnife",
+     "HayHook",
+     "StoneKnife",
+     "Cleaver",
+     "CombatKnife",
+     "Jambiya",
+     "HuntingKnife",
+     "Machete",
+     "CrudeMachete",
+     "OrientalMachete",
+     "Screwdriver",
+     "Crowbar",
+     "Pickaxe",
+     "WoodAxe",
+     "Hatchet",
+     "FirefighterAxe",
+     "Sword",
+     "AK_Bayonet",
+     "M9A1_Bayonet",
+     "Mosin_Bayonet",
+     "SKS_Bayonet",
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
+    ]
+   ],
+   "results": [
+    "WoodenStick"
+   ],
+   "instant": false,
+   "animationLength": 0.5,
+   "minQuantityIngredient": [
+    -1,
+    -1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    0,
+    0
+   ],
+   "ingredientDestroy": [
+    true,
+    false
+   ]
+  },
+  {
+   "class": "DeCraftHandDrillKitPalm",
+   "name": "#STR_breakdown0",
+   "ingredients": [
+    [
+     "HandDrillKitPalm"
+    ],
+    [
+     "Sickle",
+     "KukriKnife",
+     "FangeKnife",
+     "Hacksaw",
+     "HandSaw",
+     "KitchenKnife",
+     "SteakKnife",
+     "HayHook",
+     "StoneKnife",
+     "Cleaver",
+     "CombatKnife",
+     "Jambiya",
+     "HuntingKnife",
+     "Machete",
+     "CrudeMachete",
+     "OrientalMachete",
+     "Screwdriver",
+     "Crowbar",
+     "Pickaxe",
+     "WoodAxe",
+     "Hatchet",
+     "FirefighterAxe",
+     "Sword",
+     "AK_Bayonet",
+     "M9A1_Bayonet",
+     "Mosin_Bayonet",
+     "SKS_Bayonet",
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7098,6 +7859,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7113,7 +7875,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7158,6 +7924,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7173,7 +7940,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7219,6 +7990,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7233,7 +8005,11 @@
      "AK_Bayonet",
      "M9A1_Bayonet",
      "Mosin_Bayonet",
-     "SKS_Bayonet"
+     "SKS_Bayonet",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7278,6 +8054,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7293,7 +8070,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7337,6 +8118,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7352,7 +8134,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7396,6 +8182,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7411,7 +8198,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7455,6 +8246,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7470,7 +8262,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7514,6 +8310,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7529,7 +8326,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -7572,6 +8373,70 @@
    ],
    "instant": false,
    "animationLength": 0.5,
+   "minQuantityIngredient": [
+    -1,
+    -1
+   ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    0,
+    0
+   ],
+   "ingredientDestroy": [
+    true,
+    false
+   ]
+  },
+  {
+   "class": "DeCraftWaterskin",
+   "name": "#STR_breakdown0",
+   "ingredients": [
+    [
+     "Waterskin_ColorBase"
+    ],
+    [
+     "Sickle",
+     "KukriKnife",
+     "FangeKnife",
+     "Hacksaw",
+     "HandSaw",
+     "KitchenKnife",
+     "SteakKnife",
+     "HayHook",
+     "StoneKnife",
+     "Cleaver",
+     "CombatKnife",
+     "Jambiya",
+     "HuntingKnife",
+     "Machete",
+     "CrudeMachete",
+     "OrientalMachete",
+     "Screwdriver",
+     "Crowbar",
+     "Pickaxe",
+     "WoodAxe",
+     "Hatchet",
+     "FirefighterAxe",
+     "Sword",
+     "AK_Bayonet",
+     "M9A1_Bayonet",
+     "Mosin_Bayonet",
+     "SKS_Bayonet",
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
+    ]
+   ],
+   "results": [
+    "TannedLeather"
+   ],
+   "instant": false,
+   "animationLength": 1,
    "minQuantityIngredient": [
     -1,
     -1
@@ -7670,8 +8535,11 @@
      "WaterBottle",
      "FilteringBottle",
      "GlassBottle",
+     "WineBottle",
      "WaterPouch_ColorBase",
-     "Barrel_ColorBase"
+     "Barrel_ColorBase",
+     "AyranBottle",
+     "AyranBottle"
     ],
     [
      "Pot",
@@ -7680,6 +8548,7 @@
      "WaterBottle",
      "FilteringBottle",
      "GlassBottle",
+     "WineBottle",
      "WaterPouch_ColorBase",
      "Barrel_ColorBase"
     ]
@@ -7720,8 +8589,10 @@
      "WaterBottle",
      "FilteringBottle",
      "GlassBottle",
+     "WineBottle",
      "WaterPouch_ColorBase",
-     "Barrel_ColorBase"
+     "Barrel_ColorBase",
+     "AyranBottle"
     ]
    ],
    "results": [],
@@ -7824,8 +8695,10 @@
      "WaterBottle",
      "FilteringBottle",
      "GlassBottle",
+     "WineBottle",
      "WaterPouch_ColorBase",
-     "Barrel_ColorBase"
+     "Barrel_ColorBase",
+     "AyranBottle"
     ]
    ],
    "results": [],
@@ -7893,6 +8766,7 @@
      "SteakKnife",
      "StoneKnife",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -7929,7 +8803,11 @@
      "MeatTenderizer",
      "Cleaver",
      "Sword",
-     "Iceaxe"
+     "Iceaxe",
+     "BrickTrowel",
+     "Scimitar",
+     "DonerKnife",
+     "Akinaka"
     ]
    ],
    "results": [],
@@ -7939,6 +8817,33 @@
     -1,
     -1
    ],
+   "maxDamageIngredient": [
+    3,
+    3
+   ],
+   "ingredientAddQuantity": [
+    0,
+    0
+   ],
+   "ingredientDestroy": [
+    false,
+    false
+   ]
+  },
+  {
+   "class": "OpenGunCase",
+   "name": "#unlock",
+   "ingredients": [
+    [
+     "GunCase_ColorBase"
+    ],
+    [
+     "GunCaseKeys_Colorbase"
+    ]
+   ],
+   "results": [],
+   "instant": false,
+   "animationLength": 1,
    "maxDamageIngredient": [
     3,
     3
@@ -9964,6 +10869,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -9976,7 +10882,11 @@
      "Screwdriver",
      "Hatchet",
      "HandSaw",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -10016,9 +10926,10 @@
      "KitchenKnife",
      "SteakKnife",
      "HayHook",
-     "StoneKnife",
+     "Iceaxe",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -10033,7 +10944,11 @@
      "AK_Bayonet",
      "M9A1_Bayonet",
      "Mosin_Bayonet",
-     "SKS_Bayonet"
+     "SKS_Bayonet",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -10069,8 +10984,11 @@
      "WaterBottle",
      "FilteringBottle",
      "GlassBottle",
+     "WineBottle",
      "WaterPouch_ColorBase",
-     "Barrel_ColorBase"
+     "Barrel_ColorBase",
+     "AyranBottle",
+     "AyranBottle"
     ],
     [
      "Pot",
@@ -10078,6 +10996,7 @@
      "Canteen",
      "WaterBottle",
      "FilteringBottle",
+     "WineBottle",
      "GlassBottle",
      "WaterPouch_ColorBase",
      "Barrel_ColorBase"
@@ -10119,6 +11038,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -10132,7 +11052,10 @@
      "SKS_Bayonet",
      "BoneKnife",
      "Screwdriver",
-     "Iceaxe"
+     "Iceaxe",
+     "Scimitar",
+     "DonerKnife",
+     "Akinaka"
     ]
    ],
    "results": [],
@@ -10180,6 +11103,30 @@
    ]
   },
   {
+   "class": "PrepareCatfish",
+   "name": null,
+   "ingredients": [
+    [
+     "Catfish"
+    ],
+    []
+   ],
+   "results": [
+    "CatfishFilletMeat",
+    "CatfishFilletMeat"
+   ],
+   "instant": false,
+   "animationLength": null,
+   "ingredientAddQuantity": [
+    0,
+    null
+   ],
+   "ingredientDestroy": [
+    true,
+    null
+   ]
+  },
+  {
    "class": "PrepareChicken",
    "name": null,
    "ingredients": [
@@ -10214,6 +11161,30 @@
    "results": [
     "Bone",
     "FoxPelt"
+   ],
+   "instant": false,
+   "animationLength": null,
+   "ingredientAddQuantity": [
+    0,
+    null
+   ],
+   "ingredientDestroy": [
+    true,
+    null
+   ]
+  },
+  {
+   "class": "PrepareLizard",
+   "name": null,
+   "ingredients": [
+    [
+     "DeadLizard"
+    ],
+    []
+   ],
+   "results": [
+    "Bone",
+    "LizardPelt"
    ],
    "instant": false,
    "animationLength": null,
@@ -10338,9 +11309,11 @@
      "WaterBottle",
      "FilteringBottle",
      "GlassBottle",
+     "WineBottle",
      "WaterPouch_ColorBase",
      "Barrel_ColorBase",
-     "Cauldron"
+     "Cauldron",
+     "AyranBottle"
     ]
    ],
    "results": [],
@@ -10877,7 +11850,8 @@
    "name": "#STR_sawoffbarrel0",
    "ingredients": [
     [
-     "Magnum"
+     "Magnum",
+     "Magnum_Gold"
     ],
     [
      "Hacksaw"
@@ -11055,6 +12029,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -11070,7 +12045,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -11114,6 +12093,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -11129,7 +12109,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -11203,6 +12187,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -11218,7 +12203,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -11263,6 +12252,7 @@
      "StoneKnife",
      "Cleaver",
      "CombatKnife",
+     "Jambiya",
      "HuntingKnife",
      "Machete",
      "CrudeMachete",
@@ -11277,7 +12267,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -11368,7 +12362,11 @@
      "M9A1_Bayonet",
      "Mosin_Bayonet",
      "SKS_Bayonet",
-     "BoneKnife"
+     "BoneKnife",
+     "Scimitar",
+     "DonerKnife",
+     "BrickTrowel",
+     "Akinaka"
     ]
    ],
    "results": [
@@ -11428,37 +12426,6 @@
    ],
    "ingredientDestroy": [
     false,
-    false
-   ]
-  },
-  {
-   "class": "Test",
-   "name": "Test 3 ingredients",
-   "ingredients": [
-    [
-     "BloodTestKit"
-    ],
-    [
-     "BloodSyringe"
-    ]
-   ],
-   "results": [],
-   "instant": false,
-   "animationLength": 1,
-   "minQuantityIngredient": [
-    -1,
-    -1
-   ],
-   "maxDamageIngredient": [
-    3,
-    3
-   ],
-   "ingredientAddQuantity": [
-    0,
-    0
-   ],
-   "ingredientDestroy": [
-    true,
     false
    ]
   },

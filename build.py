@@ -117,13 +117,39 @@ MEDICAL = re.compile(r"(?i)bandage|morphine|epinephrine|saline|bloodbag|bloodtes
 
 
 def family(cls):
-    """Colour variants share a page: Hoodie_Blue -> Hoodie."""
+    """Colour variants share a page: Hoodie_Blue -> Hoodie. Ammunition groups its tracer and
+    armour-piercing loads and its boxes under the plain round: AmmoBox_762x39Tracer_20Rnd -> Ammo_762x39."""
+    m = AMMO_VARIANT.match(cls)
+    if m:
+        return f"Ammo_{AMMO_ALIAS.get(m.group('cal').lower(), m.group('cal'))}"
     base, _, suffix = cls.rpartition("_")
     return base if base and COLOUR.fullmatch(suffix) else cls
 
 
-def wiki_category(cls, t):
+AMMO_VARIANT = re.compile(r"(?i)^(?:Ammo|AmmoBox)_(?P<cal>(?!40mm)[0-9a-z]+?)(?P<load>Tracer|AP)?(?:_(?P<n>\d+)rnd)?$")
+AMMO_ALIAS = {"00buck": "12gaPellets"}   # box classes that spell the calibre differently from the loose rounds
+
+
+def ammo_role(cls):
+    """What an ammunition variant is: 'Tracer', 'Armour-piercing', 'Box of 20', 'Box of 20 tracer'."""
+    m = AMMO_VARIANT.match(cls)
+    if not m:
+        return None
+    load = {"tracer": "Tracer", "ap": "Armour-piercing"}.get((m.group("load") or "").lower())
+    if m.group("n"):
+        return f"Box of {m.group('n')}" + (f" {load.lower()}" if load else "")
+    return load or "Rounds"
+
+
+CLOTHING_SLOTS = {"body", "legs", "feet", "headgear", "mask", "eyewear", "gloves", "vest", "hips", "back", "armband"}
+CLOTHING_NAME = re.compile(r"(?i)hat$|cap$|helmet|beanie|beret|hood$|boots|shoes|sneakers|wellies|pants|jeans|shorts|vest$|gloves|balaclava|respirator|bandana|glasses|goggles")
+GEAR_OTHER = re.compile(r"^Bear_|Teddy|Toy|Doll|Leaflet|Paper$|Map$")
+
+
+def wiki_category(cls, t, slots=()):
     c = t.get("category")
+    if any(sl.lower() in CLOTHING_SLOTS for sl in slots) or (not slots and CLOTHING_NAME.search(family(cls))):
+        return "clothing"
     if c == "clothes":
         return "clothing"
     if c in ("food", "tools", "containers"):
@@ -146,6 +172,51 @@ CALIBRES = {"45acp": ".45 ACP", "308win": ".308 Win", "357": ".357", "380": ".38
             "9x39ap": "9x39mm AP", "556x45": "5.56x45mm", "545x39": "5.45x39mm", "762x39": "7.62x39mm", "762x54": "7.62x54mmR",
             "9x19": "9x19mm", "9x39": "9x39mm", "huntingbolt": "Hunting bolt", "flare": "Flare", "flareblue": "Blue flare",
             "flaregreen": "Green flare", "flarered": "Red flare"}
+
+
+# Subcategory order per category. Pages are grouped on category pages and in the side navigation.
+SUBCATS = {
+    "weapons": ["Assault rifles", "Rifles", "Sniper rifles", "Submachine guns", "Machine guns", "Shotguns", "Pistols",
+                "Launchers", "Bows and crossbows", "Explosives", "Melee", "Other"],
+    "ammunition": ["Rifle rounds", "Pistol rounds", "Shotgun shells", "40mm grenades", "Bolts", "Other"],
+    "attachments": ["Optics", "Magazines", "Suppressors", "Muzzle", "Buttstocks", "Handguards", "Bayonets", "Lights and night vision", "Other"],
+    "clothing": ["Tops", "Pants", "Shoes", "Headgear", "Masks", "Eyewear", "Gloves", "Vests", "Backpacks", "Belts", "Armbands", "Other"],
+    "gear": ["Melee weapons", "Tools", "Containers", "Camping", "Electronics", "Base building", "Repair", "Vehicle parts", "Other"],
+    "medical": ["Drugs", "Wound care", "Blood and IV", "Tests", "Other"],
+    "food": ["Canned", "Drinks", "Fruit and vegetables", "Meat and fish", "Snacks and dry goods", "Seeds", "Other"],
+    "vehicles": ["Cars", "Trucks", "Motorbikes", "Boats", "Other"],
+    "health": ["Diseases", "Guides"],
+}
+PISTOL_ROUNDS = {"Bullet_9x19", "Bullet_45ACP", "Bullet_380", "Bullet_22", "Bullet_357"}
+GEAR_PATTERNS = [
+    ("Melee weapons", r"Axe|Hatchet|Machete|Knife|Bat$|Knuckles|Cleaver|Scimitar|Crowbar|SledgeHammer|Pickaxe|Pitchfork|Sickle|Tenderizer|Baton|Katana|Sword"),
+    ("Tools", r"Keys$|Handcuffs|Lockpick|CanOpener|Blowtorch|BearTrap|Broom|Hoe$|Lime$"),
+    ("Vehicle parts", r"CarBattery|TruckBattery|Radiator|SparkPlug|GlowPlug|Headlight|Wheel|LugWrench|CanisterGasoline|Door|Hood$|Trunk"),
+    ("Repair", r"RepairKit|SewingKit|DuctTape|EpoxyPutty|Whetstone|CleaningKit|Pliers|Screwdriver|Wrench|Hammer$|Hacksaw|HandSaw"),
+    ("Base building", r"NailBox|Nail|Wire|Lock$|Lock\d|Camonet|Flag_|Brick|MortarMix|MetalPlate|Netting|Rope|Fabric|Trowel|Shovel|Pipe$|Stone|Log$|Plank"),
+    ("Camping", r"Tent|Stove|Lamp|Lighter|Matchbox|Pot$|FryingPan|Tripod|Gas(Canister|Stove)|Firewood|Roadflare|Chemlight|Canteen|Bottle|CookingStand|Flare"),
+    ("Electronics", r"Radio|Battery|Charger|Flashlight|Headtorch|GPS|Rangefinder|Binoculars|Compass|Spotlight|Generator|Detonator|Megaphone|Timer|AlarmClock|XmasLights|Walkie|CableReel|NVG"),
+    ("Containers", r"Barrel|Chest|Case$|Pouch|Sack|Bag$|Bag_|Box$|Crate|Canister|Keys$"),
+]
+MED_PATTERNS = [("Drugs", r"Tablets|Antibiotics|Morphine|Epinephrine|Vitamin|Painkiller|Chelat|Charcoal|Codeine"),
+                ("Wound care", r"Bandage|Disinfectant|Iodine|Suture|Rag$|Splint|Tourniquet"),
+                ("Blood and IV", r"Blood(Bag|Set)|Saline|StartKitIV|^IV"), ("Tests", r"Thermometer|TestKit|Purification")]
+FOOD_PATTERNS = [("Drinks", r"SodaCan|Bottle|Lassi|Ayran|Canteen|Milk$|Vodka|Juice|Water"),
+                 ("Seeds", r"Seed"),
+                 ("Fruit and vegetables", r"Tomato|Pepper|Zucchini|Pumpkin|Potato|Apple|Plum|Pear|Mushroom|Kiwi|Orange|Banana|Cannabis|Lime$"),
+                 ("Meat and fish", r"Carp|Mackerel|Trout|Steak|Meat$|Fillet|Fat$|Guts|Lard|Sardines|Tuna"),
+                 ("Canned", r"Can$|Can_|Pate|Spread|Lunchmeat|Pajka|Achar|Sarma|Marmalade|Honey"),
+                 ("Snacks and dry goods", r"Chips|Crackers|Rice|Cereal|PowderedMilk|Zagorky|Salty|Chocolate|Peanuts|Nuts|Beans|Bar$")]
+ATTACH_PATTERNS = [("Magazines", r"^Mag_"), ("Suppressors", r"Suppressor"), ("Muzzle", r"Compensator|Muzzle|Brake"),
+                   ("Buttstocks", r"Bttstck"), ("Handguards", r"Hndgrd"), ("Bayonets", r"Bayonet"),
+                   ("Lights and night vision", r"Light$|NVG|Laser"), ("Optics", r"Optic|Scope|Sight")]
+
+
+def first_match(cls, patterns, default="Other"):
+    for label, rx in patterns:
+        if re.search(rx, cls):
+            return label
+    return default
 
 
 def calibre(code):
@@ -233,11 +304,13 @@ class Wiki:
 
     # ------------------------------------------------------------------ lookups
     def cfg(self, cls):
-        for sec in ("weapons", "magazines", "vehicles"):
-            c = self.configs.get(sec, {}).get(cls)
-            if c:
-                return sec, c
-        return None, None
+        """Config class for an item; class names are case-insensitive in the game."""
+        if not hasattr(self, "_cfg_index"):
+            self._cfg_index = {}
+            for sec in ("weapons", "magazines", "vehicles"):
+                for k, v in self.configs.get(sec, {}).items():
+                    self._cfg_index.setdefault(k.lower(), (sec, v))
+        return self._cfg_index.get((cls or "").lower(), (None, None))
 
     def title(self, cls, meta=None):
         if meta and meta.get("title"):
@@ -266,6 +339,99 @@ class Wiki:
         return out
 
     # ------------------------------------------------------------------ data blocks
+    def subcat(self, p):
+        """Subcategory label for a page, from its config lineage, fire modes, ammunition and slots, else its class name."""
+        cat, cls = p["category"], p.get("cls")
+        if cat == "health":
+            return "Diseases" if p.get("disease") else "Guides"
+        if not cls:
+            return None
+        sec, c = self.cfg(cls)
+        c = c or {}
+        lineage = set(c.get("_lineage") or [])
+        t = self.purez.get("types", {}).get(cls) or {}
+        base = family(cls)
+        if cat == "weapons":
+            if t.get("category") == "explosives" or re.search(r"Grenade|Mine|Explosive|Claymore", cls):
+                return "Explosives"
+            if sec != "weapons":   # melee, or a gun whose config pack isn't in the uploaded files
+                return first_match(base, [("Melee", r"Baton|Knife|Akinaka|Jambiya|Sword|Scimitar|Machete"), ("Pistols", r"Glock|Luger|Longhorn|Derringer|Pistol|Revolver"),
+                                          ("Submachine guns", r"MP18|MP5|UMP|PP19|Skorpion"), ("Sniper rifles", r"LeeEnfield|Mosin|SVD|SV98|SSG"),
+                                          ("Assault rifles", r"SCAR|AK|M4|M16|FAMAS|AUG|FAL|Groza")], "Melee" if c.get("isMeleeWeapon") else "Other")
+            modes = set(c.get("_modes") or {})
+            rounds = {self.configs["magazines"][m]["ammo"] for m in c.get("magazines") or [] if m in self.configs["magazines"]}
+            rounds |= {self.configs["magazines"][a]["ammo"] for a in c.get("chamberableFrom") or [] if a in self.configs["magazines"]}
+            if "Launcher_Base" in lineage or re.match(r"^(M79|GP25|M203|LAW|RPG7)", cls):
+                return "Launchers"
+            if "Archery_Base" in lineage or "Bow" in cls:
+                return "Bows and crossbows"
+            if re.search(r"Flaregun|DartGun|Shockpistol|Trumpet", cls):
+                return "Other"
+            if "Pistol_Base" in lineage or re.search(r"Derringer|Luger|Pistol", cls):
+                return "Pistols"
+            if re.search(r"Shotgun|Saiga|^R12$", cls) or any("12Gauge" in r for r in rounds):
+                return "Shotguns"
+            if cls == "VSS" or "BoltActionRifle_Base" in lineage or re.match(r"^(SVD|SV98|SSG82|Scout|LeeEnfield)", cls):
+                return "Sniper rifles"
+            if re.match(r"^M249", cls):
+                return "Machine guns"
+            if "FullAuto" in modes and rounds and rounds <= PISTOL_ROUNDS:
+                return "Submachine guns"
+            if modes & {"FullAuto", "Burst"}:
+                return "Assault rifles"
+            return "Rifles"
+        if cat == "ammunition":
+            if re.search(r"(?i)40mm", cls):
+                return "40mm grenades"
+            if re.search(r"(?i)bolt|arrow", cls):
+                return "Bolts"
+            if re.search(r"(?i)12ga", cls):
+                return "Shotgun shells"
+            if re.search(r"(?i)flare", cls):
+                return "Other"
+            return "Pistol rounds" if c.get("ammo") in PISTOL_ROUNDS else "Rifle rounds"
+        if cat == "attachments":
+            return first_match(base, ATTACH_PATTERNS)
+        if cat == "clothing":
+            slots = [sl.lower() for sl in c.get("inventorySlot") or []]
+            for sl, label in (("body", "Tops"), ("legs", "Pants"), ("feet", "Shoes"), ("headgear", "Headgear"), ("mask", "Masks"),
+                              ("eyewear", "Eyewear"), ("gloves", "Gloves"), ("vest", "Vests"), ("back", "Backpacks"),
+                              ("hips", "Belts"), ("armband", "Armbands")):
+                if sl in slots:
+                    return label
+            return first_match(base, [("Headgear", r"Hat$|Cap$|Helmet|Beanie|Beret|Hood$|Ushanka"), ("Shoes", r"Boots|Shoes|Sneakers|Wellies|Sandals"),
+                                     ("Pants", r"Pants|Jeans|Shorts|Skirt|Slacks|Breeches|Trousers"), ("Vests", r"Vest"), ("Gloves", r"Gloves"),
+                                     ("Masks", r"Mask|Balaclava|Respirator|Bandana"), ("Eyewear", r"Glasses|Goggles"), ("Belts", r"Belt"),
+                                     ("Backpacks", r"Bag|Pack"), ("Armbands", r"Armband")], "Tops")
+        if cat == "gear":
+            if GEAR_OTHER.search(base):
+                return "Other"
+            label = first_match(base, GEAR_PATTERNS, None)
+            if label:
+                return label
+            return {"containers": "Containers", "tools": "Tools"}.get(t.get("category"), "Other")
+        if cat == "medical":
+            return first_match(base, MED_PATTERNS)
+        if cat == "food":
+            return first_match(base, FOOD_PATTERNS)
+        if cat == "vehicles":
+            return first_match(cls, [("Trucks", r"Truck"), ("Motorbikes", r"Motorbike|Bike"), ("Boats", r"Boat")], "Cars")
+        return None
+
+    def groups(self, cat):
+        """Subcategory groups of a category, in SUBCATS order: [(label, slug, [pages])]."""
+        pages = [x for x in self.pages if x["category"] == cat and x["url"] != f"/{cat}/"]
+        by = defaultdict(list)
+        for x in pages:
+            by[self.subcat(x) or ""].append(x)
+        order = SUBCATS.get(cat, [])
+        labels = sorted(by, key=lambda l: (order.index(l) if l in order else len(order), l))
+        out = []
+        for l in labels:
+            kids = sorted(by[l], key=lambda x: (int(x["meta"].get("order", 999)), x["title"]))
+            out.append((l, slugify(l) if l else "", kids))
+        return out
+
     def loot(self, cls):
         t = self.purez.get("types", {}).get(cls)
         if not t:
@@ -573,7 +739,7 @@ class Wiki:
             by_base.setdefault(family(cls), []).append(cls)
         fams = {}
         for base, members in by_base.items():  # a family takes its members' most common category
-            cats = [wiki_category(m, types[m]) for m in members]
+            cats = [wiki_category(m, types[m], (self.cfg(m)[1] or {}).get("inventorySlot") or ()) for m in members]
             cat = max(set(cats), key=cats.count)
             # items the game names identically (Teddy Bear, Brass Knuckles) share a page as variants
             name = next((self.cfg(m)[1].get("displayName") for m in members if self.cfg(m)[1] and self.cfg(m)[1].get("displayName")), None)
@@ -584,7 +750,10 @@ class Wiki:
             if name.startswith("Vehicle") and e["active"] and e["nominal"] > 0 and e["children"]:
                 fams[(name, "vehicles")] = list(e["children"])
         taken = {p["url"] for p in self.pages}
+        self.unconfigured = []     # types.xml entries without a config in the uploaded game files
         for (base, cat), members in sorted(fams.items()):
+            if cat != "vehicles" and self.configs.get("vehicles") and not any(self.cfg(m)[1] for m in members):
+                self.unconfigured.append(base)
             members.sort(key=lambda c: (-(types.get(c, {}).get("nominal") or 0), c))
             existing = next((self.by_class[m] for m in members if m in self.by_class), None)
             if existing:
@@ -663,7 +832,10 @@ class Wiki:
             if p.get("variants"):
                 types = self.purez.get("types", {})
                 base = family(cls)
-                variants = [{"cls": v, "label": variant_label(v, base), "nominal": (types.get(v) or {}).get("nominal")} for v in p["variants"]]
+                variants = [{"cls": v, "label": ammo_role(v) if p["category"] == "ammunition" else variant_label(v, base),
+                             "nominal": (types.get(v) or {}).get("nominal")} for v in p["variants"]]
+                if p["category"] == "ammunition":
+                    ctx["ammoVariants"] = self.ammo_variants(cls, p["variants"])
                 if loot:
                     loot["nominal"] = sum((types.get(v) or {}).get("nominal") or 0 for v in p["variants"])
                     loot["min"] = sum((types.get(v) or {}).get("min") or 0 for v in p["variants"])
@@ -683,10 +855,36 @@ class Wiki:
             ctx["link"] = self.link
         if p["url"] == "/":
             ctx["counts"] = {k: sum(1 for x in self.pages if x["category"] == k and x["url"] != f"/{k}/") for k, *_ in CATEGORIES}
-        if p["src"].endswith("index.md") and p["category"] in CAT and p["url"] != "/":
+        if p["category"] in SUBCATS:
+            groups = self.groups(p["category"])
+            ctx["subnav"] = [(l, slug) for l, slug, kids in groups if l] if len(groups) > 1 else []
+            if p["src"].endswith("index.md") and p["url"] != "/":
+                ctx["groups"] = groups
+                ctx["children"] = [x for _, _, kids in groups for x in kids]
+        elif p["src"].endswith("index.md") and p["category"] in CAT and p["url"] != "/":
             ctx["children"] = sorted((x for x in self.pages if x["category"] == p["category"] and x is not p),
                                      key=lambda x: (int(x["meta"].get("order", 999)), x["title"]))
         return ctx
+
+    def ammo_variants(self, base, members):
+        """Each load and box of a round as its own section: what differs from the plain round."""
+        types = self.purez.get("types", {})
+        out = []
+        for v in members:
+            if v == base:
+                continue
+            _, c = self.cfg(v)
+            c = c or {}
+            ammo = self.configs.get("ammo", {}).get(c.get("ammo"), {})
+            dmg = ammo.get("DamageApplied", {})
+            b = self.configs.get("ammo", {}).get((self.cfg(base)[1] or {}).get("ammo"), {})
+            m = AMMO_VARIANT.match(v)
+            out.append({"cls": v, "role": ammo_role(v), "title": self.title(v), "description": c.get("descriptionShort"),
+                        "count": c.get("count") or (int(m.group("n")) if m and m.group("n") else None), "weight": c.get("weight"), "nominal": (types.get(v) or {}).get("nominal"),
+                        "damage": {k: (dmg.get(k) or {}).get("damage") for k in ("Health", "Blood", "Shock")} if c.get("ammo") != (self.cfg(base)[1] or {}).get("ammo") else None,
+                        "initSpeed": ammo.get("initSpeed") if ammo.get("initSpeed") != b.get("initSpeed") else None,
+                        "tracer": bool(ammo.get("tracerStartTime", -1) >= 0) if ammo else False})
+        return out
 
     def disease(self, mid):
         name, agent_id, _ = DISEASES[mid]
@@ -1000,6 +1198,9 @@ def main():
     w.collect()
     n = w.render(env)
     print(f"built {n} pages -> {OUT}")
+    if getattr(w, "unconfigured", None):
+        print(f"  {len(w.unconfigured)} item families have no config in data/configs.json (names fall back to class names): "
+              + ", ".join(sorted(w.unconfigured)[:12]) + (" …" if len(w.unconfigured) > 12 else ""))
 
 
 if __name__ == "__main__":

@@ -15,7 +15,7 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --top-h: 56px;
-  --gutter: clamp(16px, 3vw, 40px);
+  --gutter: clamp(16px, 4vw, 48px);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,22 +37,26 @@ strong, b { font-weight: 600; color: var(--white); }
 code, kbd { font-family: var(--mono); font-size: 0.85em; }
 
 /* Top bar */
-.top {
-  position: sticky; top: 0; z-index: 20;
-  height: var(--top-h);
-  display: flex; align-items: center; gap: 1.5rem;
-  padding: 0 var(--gutter);
-  background: rgba(10, 10, 10, 0.96);
-  border-bottom: 1px solid var(--line);
+/* Header: same rules as purez.gg */
+.nav {
+  position: sticky; top: 0; z-index: 20; height: var(--top-h);
+  display: flex; align-items: center; gap: 2rem; padding: 0 var(--gutter);
+  background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
 }
 .logo { font: 900 1.4rem/1 var(--head); color: var(--white); text-decoration: none; white-space: nowrap; }
 .logo span { color: var(--red); }
 .logo em { font: 600 0.72rem var(--body); font-style: normal; letter-spacing: 0.18em; text-transform: uppercase; color: var(--grey); margin-left: 0.55rem; vertical-align: 0.3em; }
-.out-links { margin-left: auto; display: flex; gap: 1.25rem; }
-.out { color: var(--grey); font: 600 0.78rem var(--body); letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; white-space: nowrap; }
-.out:hover { color: var(--white); }
+.nav nav { display: flex; gap: 1.75rem; margin-left: auto; }
+.nav nav a { font-weight: 600; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; text-decoration: none; color: var(--grey); transition: color 0.15s; }
+.nav nav a:hover, .nav nav a[aria-current] { color: var(--white); }
+.btn {
+  display: inline-block; padding: 0.6rem 1.1rem; background: var(--red); color: var(--white);
+  font-family: var(--body); font-weight: 600; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;
+  text-decoration: none; white-space: nowrap; transition: background 0.15s;
+}
+.btn:hover, .btn:focus-visible { background: var(--red-hi); }
 
-.search { position: relative; flex: 1; max-width: 520px; }
+.search { position: relative; flex: 1; max-width: 460px; min-width: 140px; }
 .search input {
   width: 100%; height: 38px; padding: 0 2.2rem 0 0.9rem;
   background: var(--panel); color: var(--white);
@@ -76,6 +80,9 @@ code, kbd { font-family: var(--mono); font-size: 0.85em; }
 .side a { color: var(--grey); text-decoration: none; padding: 0.3rem 0 0.3rem 0.8rem; border-left: 2px solid transparent; font-weight: 500; font-size: 0.95rem; }
 .side a:hover { color: var(--white); }
 .side a[aria-current] { color: var(--white); border-left-color: var(--red); }
+.side .subnav { display: flex; flex-direction: column; border-left: 2px solid var(--line); margin: 0.1rem 0 0.4rem; }
+.side .subnav a { font-size: 0.82rem; font-weight: 500; padding: 0.18rem 0 0.18rem 1.1rem; border: 0; color: var(--muted); }
+.side .subnav a:hover { color: var(--white); }
 .main { padding: 2rem 0 4rem; min-width: 0; max-width: 980px; }
 
 .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem 2rem; padding: 1.25rem var(--gutter); border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
@@ -138,6 +145,22 @@ h3 { font: 600 0.78rem var(--body); letter-spacing: 0.14em; text-transform: uppe
 .stat.pending dd { font: 400 0.95rem var(--body); color: var(--muted); }
 
 .block { padding: 2rem 0 0.5rem; border-top: 1px solid var(--line); margin-top: 1.75rem; }
+details.block:not([open]) { padding-bottom: 0; }
+details.block > summary, details.group > summary { list-style: none; cursor: pointer; user-select: none; }
+details.block > summary::-webkit-details-marker, details.group > summary::-webkit-details-marker { display: none; }
+details.block > summary h2, details.group > summary h2 { position: relative; padding-right: 1.5rem; }
+details.block > summary h2::after, details.group > summary h2::after {
+  content: ""; position: absolute; right: 0.35rem; top: 50%; width: 7px; height: 7px;
+  border: solid var(--grey); border-width: 0 1.5px 1.5px 0; transform: translateY(-70%) rotate(45deg); transition: transform 0.15s;
+}
+details.block:not([open]) > summary h2, details.group:not([open]) > summary h2 { margin-bottom: 0; }
+details.block:not([open]) > summary h2::after, details.group:not([open]) > summary h2::after { transform: translateY(-30%) rotate(-45deg); }
+details.block > summary:hover h2::after, details.group > summary:hover h2::after { border-color: var(--white); }
+details.group { margin-top: 1.75rem; }
+details.group:first-of-type { margin-top: 0; }
+details.group > summary h2 small { font: 500 0.85rem var(--body); color: var(--muted); letter-spacing: 0; }
+.variant + .variant { margin-top: 1.25rem; }
+.variant h3 small { text-transform: none; letter-spacing: 0; font-weight: 500; margin-left: 0.5rem; }
 
 table.data { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.97rem; }
 .data th { text-align: left; font: 600 0.72rem var(--body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--grey); padding: 0.5rem 0.75rem 0.5rem 0; border-bottom: 1px solid #2a2a2a; }
@@ -198,15 +221,20 @@ table.data { width: 100%; border-collapse: collapse; font-variant-numeric: tabul
 .prose table { border-collapse: collapse; }
 .prose td, .prose th { border-bottom: 1px solid var(--line); padding: 0.4rem 0.8rem 0.4rem 0; text-align: left; }
 
+@media (max-width: 720px) {
+  .nav { gap: 0.75rem; }
+  .search { min-width: 0; }
+  .nav .btn { padding: 0.5rem 0.7rem; font-size: 0.72rem; letter-spacing: 0.06em; }
+}
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; gap: 0; }
   .side { position: static; flex-direction: row; overflow-x: auto; gap: 0.25rem; padding: 0.75rem 0; border-bottom: 1px solid var(--line); scrollbar-width: none; }
   .side a { border-left: 0; border-bottom: 2px solid transparent; padding: 0.3rem 0.6rem; white-space: nowrap; }
   .side a[aria-current] { border-bottom-color: var(--red); }
   .split { grid-template-columns: 1fr; }
-  .out-links, .search .hint { display: none; }
-  .top { gap: 1rem; }
-  .logo em { display: none; }
+  .nav { gap: 1rem; }
+  .nav nav, .search .hint, .logo em { display: none; }
+  .side .subnav { display: none; }
 }
 
 /* Cell grids: each cell draws its own edge so unfilled row space stays empty */

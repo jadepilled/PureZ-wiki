@@ -7,11 +7,24 @@
 {% if body %}<section class="prose">{{ body | safe }}</section>{% endif %}
 {% if children %}
 {% if children | length > 12 %}<input class="filter" type="search" placeholder="Filter {{ children | length }} pages" aria-label="Filter" data-filter=".list li">{% endif %}
+{% if groups and groups | length > 1 %}
+{% for label, slug, kids in groups %}
+<details class="group" id="{{ slug }}" open>
+  <summary><h2>{{ label or "Other" }}<small>{{ kids | length }}</small></h2></summary>
+  <ul class="list">
+    {% for c in kids %}
+    <li data-text="{{ (c.title ~ ' ' ~ (c.cls or '')) | lower }}"><a href="{{ c.url }}"><span>{{ c.title }}</span>{% if c.variants %}<small class="muted">{{ c.variants | length }} variants</small>{% endif %}</a></li>
+    {% endfor %}
+  </ul>
+</details>
+{% endfor %}
+{% else %}
 <ul class="list">
   {% for c in children %}
-  <li data-text="{{ (c.title ~ ' ' ~ (c.cls or '')) | lower }}"><a href="{{ c.url }}"><span>{{ c.title }}</span>{% if c.variants %}<small class="muted">{{ c.variants | length }} colours</small>{% endif %}</a></li>
+  <li data-text="{{ (c.title ~ ' ' ~ (c.cls or '')) | lower }}"><a href="{{ c.url }}"><span>{{ c.title }}</span>{% if c.variants %}<small class="muted">{{ c.variants | length }} variants</small>{% endif %}</a></li>
   {% endfor %}
 </ul>
+{% endif %}
 {% else %}
 <p class="muted">Nothing here yet.</p>
 {% endif %}

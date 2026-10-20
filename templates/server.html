@@ -7,8 +7,8 @@
 </header>
 {% if body %}<section class="prose">{{ body | safe }}</section>{% endif %}
 
-<section class="block">
-  <h2>Loot</h2>
+<details class="block" open>
+  <summary><h2>Loot</h2></summary>
   <table class="data">
     <thead><tr><th>Category</th><th class="n">On the map</th></tr></thead>
     <tbody>
@@ -16,31 +16,31 @@
     <tr><td><b>Total</b></td><td class="n"><b>{{ S.lootTotal | num }} items</b></td></tr>
     </tbody>
   </table>
-</section>
+</details>
 
-<section class="block">
-  <h2>Infected</h2>
+<details class="block" open>
+  <summary><h2>Infected</h2></summary>
   <table class="data">
     <thead><tr><th>Area type</th><th class="n">Areas</th><th class="n">Infected across all areas</th></tr></thead>
     <tbody>{% for z in S.zones %}<tr><td>{{ z.name }}</td><td class="n">{{ z.zones }}</td><td class="n">{{ z.range[0] | num }}–{{ z.range[1] | num }}</td></tr>{% endfor %}</tbody>
   </table>
-</section>
+</details>
 
-<section class="block">
-  <h2>Vehicles</h2>
+<details class="block" open>
+  <summary><h2>Vehicles</h2></summary>
   <table class="data">
     <thead><tr><th>Vehicle</th><th class="n">On the map</th><th class="n">Spawn points</th></tr></thead>
     <tbody>{% for v in S.vehicles %}<tr><td>{{ v.name }}</td><td class="n">{{ v.count }}</td><td class="n">{{ v.positions }}</td></tr>{% endfor %}</tbody>
   </table>
   <p class="note">Every vehicle spawns pristine with all parts fitted.</p>
-</section>
+</details>
 
-<section class="block">
-  <h2>Gameplay</h2>
+<details class="block" open>
+  <summary><h2>Gameplay</h2></summary>
   <table class="data">
     <tbody>
     {% for r in S.gameplay + S.globals %}<tr><td>{{ r.label }}</td><td class="n">{{ r.value | unit(r.unit) }}</td></tr>{% endfor %}
     </tbody>
   </table>
-</section>
+</details>
 {% endblock %}

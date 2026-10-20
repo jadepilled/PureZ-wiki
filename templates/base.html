@@ -15,19 +15,27 @@
   {% block head %}{% endblock %}
 </head>
 <body{% if preview %} class="preview"{% endif %}>
-  <header class="top">
-    <a class="logo" href="/" aria-label="PureZ Wiki home">Pure<span>Z</span><em>Wiki</em></a>
+  <header class="nav">
+    <a href="https://purez.gg" class="logo" aria-label="PureZ home">Pure<span>Z</span><em>Wiki</em></a>
     <div class="search" role="search">
       <input id="q" type="search" placeholder="Search" autocomplete="off" spellcheck="false" aria-label="Search the wiki" aria-controls="results">
       <kbd class="hint">/</kbd>
       <ul id="results" role="listbox" hidden></ul>
     </div>
-    <nav class="out-links"><a class="out" href="https://map.purez.gg">Map</a><a class="out" href="https://purez.gg">purez.gg</a></nav>
+    <nav aria-label="Main">
+      <a href="https://purez.gg/#servers">Servers</a>
+      <a href="https://purez.gg/#features">Features</a>
+      <a href="https://wiki.purez.gg" aria-current="page">Wiki</a>
+      <a href="https://map.purez.gg">Map</a>
+      <a href="https://purez.gg/#play">Play</a>
+    </nav>
+    <a href="https://discord.gg/JES5Wpkpe5" class="btn" target="_blank" rel="noopener">Join our Discord</a>
   </header>
   <div class="layout">
     <nav class="side" aria-label="Categories">
       {% for key, name, _ in categories %}
       <a href="/{{ key }}/"{% if page.category == key %} aria-current="true"{% endif %}>{{ name }}</a>
+      {% if page.category == key and subnav %}<div class="subnav">{% for label, slug in subnav %}<a href="/{{ key }}/#{{ slug }}">{{ label }}</a>{% endfor %}</div>{% endif %}
       {% endfor %}
     </nav>
     <main class="main">
