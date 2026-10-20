@@ -19,13 +19,21 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-padding-top: calc(var(--top-h) + 16px); }
+html, body { height: 100%; overflow: hidden; }
+/* The page scrolls below the header, so the scrollbar sits inside the page */
+.scroll-area { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; scroll-padding-top: 16px; overscroll-behavior: contain; }
+
+/* Scrollbars, everywhere */
+* { scrollbar-width: thin; scrollbar-color: #333 var(--panel); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--panel); }
+::-webkit-scrollbar-thumb { background: #333; border: 2px solid var(--panel); }
+::-webkit-scrollbar-thumb:hover { background: var(--grey); }
 body {
   background: var(--black);
   color: var(--text);
   font: 300 1.0625rem/1.6 var(--body);
   -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -76,7 +84,7 @@ code, kbd { font-family: var(--mono); font-size: 0.85em; }
 
 /* Layout */
 .layout { flex: 1; display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 2.5rem; padding: 0 var(--gutter); max-width: 1240px; width: 100%; margin: 0 auto; }
-.side { position: sticky; top: var(--top-h); align-self: start; display: flex; flex-direction: column; padding: 2rem 0; }
+.side { position: sticky; top: 0; align-self: start; display: flex; flex-direction: column; padding: 2rem 0; }
 .side a { color: var(--grey); text-decoration: none; padding: 0.3rem 0 0.3rem 0.8rem; border-left: 2px solid transparent; font-weight: 500; font-size: 0.95rem; }
 .side a:hover { color: var(--white); }
 .side a[aria-current] { color: var(--white); border-left-color: var(--red); }
