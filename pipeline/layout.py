@@ -61,7 +61,17 @@ def wiki_items(cfg):
             out[meta["class"]] = {"category": cat, "model": meta.get("model")}
     try:
         sys.path.insert(0, ROOT)
-        import build
+        try:
+            import build
+        except ModuleNotFoundError:   # build.py imports jinja2 and markdown; only its pure category rules are needed here
+            import types
+            for mod, names in (("markdown", ["Markdown"]), ("jinja2", ["Environment", "FileSystemLoader", "Undefined", "select_autoescape"])):
+                if mod not in sys.modules:
+                    stub = types.ModuleType(mod)
+                    for n in names:
+                        setattr(stub, n, object)
+                    sys.modules[mod] = stub
+            import build
         vehicle_slots = {a.lower() for c in cfg.values() if set(c.get("_lineage") or []) & build.VEHICLE_BASES
                          for a in c.get("attachments") or [] if not re.search(r"(?i)barrel|cargo|crate|material|canister|planks|sheets|logs", a)}
         categorise = lambda cls, t: build.wiki_category(cls, t, (cfg.get(cls) or {}).get("inventorySlot") or (), vehicle_slots)
@@ -151,6 +161,12 @@ def main():
     a = ap.parse_args()
     slots = [x.strip().lower() for x in a.slots.split(",") if x.strip()]
 
+    if not os.path.isdir(a.render):
+        sys.exit(f"render folder not found: {a.render}\n"
+                 "In Git Bash backslashes are stripped from arguments: write the path with forward slashes "
+                 "(F:/PureZ/PureZ-render) or in single quotes.")
+    if not os.path.isdir(os.path.join(a.render, "DZ")) and not os.path.isdir(os.path.join(a.render, "dz")):
+        print(f"warning: no DZ folder under {a.render}; model paths like dz\\weapons\\... will not resolve")
     cfg = configs()
     items = wiki_items(cfg)
     if a.all:

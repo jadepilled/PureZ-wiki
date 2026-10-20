@@ -178,9 +178,11 @@ class Files:
                 self.index[os.path.relpath(full, root).replace("\\", "/").lower()] = full
 
     def find(self, game_path):
+        """The game path's file, or its .odol twin when only the binarised original is left (interrupted conversion)."""
         if not game_path or game_path.startswith("#"):
             return None
-        return self.index.get(game_path.replace("\\", "/").lstrip("/").lower())
+        key = game_path.replace("\\", "/").lstrip("/").lower()
+        return self.index.get(key) or (self.index.get(key[:-4] + ".odol") if key.endswith(".p3d") else None)
 
 
 def rvmat_textures(path):
