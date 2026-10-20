@@ -476,7 +476,7 @@ def mlod_chunks(model, lods=None):
         if npts_src:
             uniq, remap = np.unique(np.round(P, 6), axis=0, return_inverse=True)
             remap = remap.reshape(-1).astype(np.uint32)
-            order = np.full(len(uniq), -1, np.int64)      # first source vertex of each welded point, keeps order stable
+            order = np.full(len(uniq), npts_src, np.int64)   # first source vertex of each welded point, keeps order stable
             np.minimum.at(order, remap, np.arange(npts_src))
             keep = np.argsort(order)
             rank = np.empty_like(keep); rank[keep] = np.arange(len(keep))
