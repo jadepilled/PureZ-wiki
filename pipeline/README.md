@@ -20,7 +20,7 @@ The game ships binarised ODOL models, which Blender can't read. Convert them to 
 build the work tree and render. From the wiki repo on your PC:
 
 1. **Debinarise** the render set (skips files that are already MLOD, so it can be re-run):
-   `python pipeline/deodol.py F:\PureZ\PureZ-render`
+   `python pipeline/deodol.py` (defaults to `F:\PureZ\PureZ-render`, the folder next to the repo; pass another path as the first argument)
    This runs `C:\Users\Jade\Desktop\Deodol54.exe` on every ODOL file and falls back to
    `DeODOL53.exe` for any file v54 leaves binarised. Failures are listed in `PureZ-render\deodol.log`.
    `pipeline\deodol.bat` does the same from a double-click. Pass `--exe`/`--fallback` if the tools move.

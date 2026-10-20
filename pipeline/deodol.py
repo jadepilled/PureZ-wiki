@@ -1,6 +1,6 @@
 r"""Debinarise every ODOL .p3d under a folder with DeODOL, falling back to the older build.
 
-    python pipeline/deodol.py F:\PureZ\PureZ-render
+    python pipeline/deodol.py                      # uses ..\PureZ-render next to the wiki repo
     python pipeline/deodol.py F:\PureZ\PureZ-render --exe C:\path\Deodol54.exe --fallback C:\path\DeODOL53.exe
 
 For each .p3d whose header is ODOL: run the primary DeODOL on it; if the file is not MLOD afterwards
@@ -10,6 +10,8 @@ at the end so they can be retried by hand. Use --dry-run to only count.
 """
 import argparse, os, subprocess, sys, time
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_ROOT = os.path.normpath(os.path.join(HERE, "..", "..", "PureZ-render"))   # F:\PureZ\PureZ-render next to F:\PureZ\PureZ-wiki
 EXE = r"C:\Users\Jade\Desktop\Deodol54.exe"
 FALLBACK = r"C:\Users\Jade\Desktop\DeODOL53.exe"
 
@@ -42,7 +44,7 @@ def run(exe, path, timeout, settle):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("root", help="folder to walk (the render set from dayz_prune.py)")
+    ap.add_argument("root", nargs="?", default=DEFAULT_ROOT, help=f"folder to walk, the render set from dayz_prune.py (default: {DEFAULT_ROOT})")
     ap.add_argument("--exe", default=EXE)
     ap.add_argument("--fallback", default=FALLBACK)
     ap.add_argument("--timeout", type=int, default=120, help="seconds per file per converter")
@@ -50,6 +52,13 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
 
+    if not os.path.isdir(a.root):
+        sys.exit(f"render folder not found: {a.root}\nPass it as the first argument, e.g. python deodol.py F:\\PureZ\\PureZ-render")
+    for exe in (a.exe, a.fallback):
+        if not os.path.exists(exe):
+            print(f"note: {exe} not found" + (" (no fallback)" if exe == a.fallback else ""))
+    if not os.path.exists(a.exe):
+        sys.exit("--exe must point at Deodol54.exe")
     files = [os.path.join(d, f) for d, _, fs in os.walk(a.root) for f in fs if f.lower().endswith(".p3d")]
     odol = [f for f in files if header(f) == b"ODOL"]
     print(f"{len(files)} models, {len(odol)} still ODOL")
