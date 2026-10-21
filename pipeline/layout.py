@@ -228,6 +228,17 @@ def main():
                                   "mats": dict(zip([x.lower() for x in ac.get("hiddenSelections") or []], ac.get("hiddenSelectionsMaterials") or []))})
                     fitted.append({k: att[k] for k in ("slot", "class", "proxy", "chance")} | {"origin": [round(x, 4) for x in att["origin"]]})
             info = p3d.export(lod, os.path.join(out_dir, "model.glb"), files, hidden, mats, parts, encoding={"png_level": 1})
+            # clothing: the model worn on the survivor (ClothingTypes.male) is rendered too, as the "worn" view
+            worn = (c.get("ClothingTypes") or c.get("clothingtypes") or {})
+            worn = worn.get("male") or worn.get("female") if isinstance(worn, dict) else None
+            wsrc = files.find(worn) if worn else None
+            if wsrc:
+                wlod = p3d.best_lod(p3d.read_p3d(wsrc))
+                if wlod:
+                    p3d.export(wlod, os.path.join(out_dir, "wear.glb"), files, hidden, mats, None, encoding={"png_level": 1})
+                    info["worn"] = worn
+            elif worn:
+                print(f"missing  {cls} worn model: {worn}", flush=True)
             if not a.no_web:
                 p3d.export(lod, os.path.join(out_dir, "web.glb"), files, hidden, mats, parts,
                            encoding={"fmt": "webp", "lossless": not a.web_lossy, "quality": a.web_lossy or 90, "max_size": a.web_tex})

@@ -360,7 +360,16 @@ class Wiki:
 
     def link(self, cls):
         p = self.by_class.get(cls)
-        return {"cls": cls, "title": p["title"] if p else self.title(cls), "url": p["url"] if p else None}
+        out = {"cls": cls, "title": p["title"] if p else self.title(cls), "url": p["url"] if p else None}
+        if p:
+            out["icon"] = p.get("icon") or make_icon(p["category"], p["cls"])
+        return out
+
+    def add_icons(self):
+        """Render thumbnails on every item page record, for category lists and links."""
+        for x in self.pages:
+            if x.get("cls") and x.get("category"):
+                x["icon"] = make_icon(x["category"], x["cls"])
 
     def links(self, classes):
         """Links without duplicates: colour variants share a page, dev items are dropped."""
@@ -601,11 +610,16 @@ class Wiki:
             missing = [self.title(i) for i in self.ingredient_groups[group] if i not in items] if group else []
             slots.append({"group": group, "groupUrl": f"/crafting/{slugify(group)}/" if group else None,
                           "groupNote": ("Except " + ", ".join(missing)) if missing else None,
-                          "items": [self.link(i) | {"icon": self.icon_for(i), "this": i == this} for i in extras],
+                          "items": [self.ing(i, this) for i in extras],
                           "hasThis": this in items})
         return {"title": recipe_title(r), "cls": r["class"], "slots": slots,
-                "results": [self.link(x) | {"icon": self.icon_for(x), "this": x == this} for x in dict.fromkeys(r["results"])],
+                "results": [self.ing(x, this) for x in dict.fromkeys(r["results"])],
                 "instant": r.get("instant")}
+
+    def ing(self, cls, this=None):
+        """An ingredient chip: the page link, its render thumbnail when there is one, else a glyph."""
+        l = self.link(cls)
+        return l | {"thumb": l.get("icon"), "icon": self.icon_for(cls), "this": cls == this}
 
     def icon_for(self, cls):
         """Glyph key for an item, from its category and subcategory."""
@@ -951,6 +965,8 @@ class Wiki:
                 shutil.copy(os.path.join(ROOT, extra), OUT)
 
         index = []
+        self.add_icons()
+
         for p in self.pages:
             ctx = self.context(p)
             tpl = ("home.html" if p["url"] == "/" else
@@ -1018,7 +1034,7 @@ class Wiki:
         if p.get("place"):
             ctx["place"] = self.place_ctx(p)
         if p.get("group"):
-            ctx["groupItems"] = [self.link(i) | {"icon": self.icon_for(i)} for i in self.ingredient_groups[p["group"]] if i in self.by_class]
+            ctx["groupItems"] = [self.ing(i) for i in self.ingredient_groups[p["group"]] if i in self.by_class]
             ctx["groupMembers"] = len(self.ingredient_groups[p["group"]])
         if p["url"] == "/":
             ctx["counts"] = {k: sum(1 for x in self.pages if x["category"] == k and x["url"] != f"/{k}/") for k, *_ in CATEGORIES}
@@ -1305,9 +1321,43 @@ def media(cat, cls):
     for kind, rel in (("image", f"media/renders/{cat}/{cls}.webp"), ("model", f"media/models/{cls}.glb")):
         if os.path.exists(os.path.join(ROOT, rel)):
             out[kind] = "/" + rel
-    views = [(name, f"media/renders/{cat}/{cls}.{name}.webp") for name in ("back", "top", "front")]
+    views = [(name, f"media/renders/{cat}/{cls}.{name}.webp") for name in ("back", "top", "front", "worn")]
     out["views"] = [{"name": name.title(), "src": "/" + rel} for name, rel in views if os.path.exists(os.path.join(ROOT, rel))]
+    icon = make_icon(cat, cls)
+    if icon:
+        out["icon"] = icon
+    # every picture of the item, for the Images section
+    out["images"] = ([{"name": "Main", "src": out["image"]}] if "image" in out else []) + out["views"]
     return out
+
+
+ICON_PX = 128
+_icon_cache = {}
+
+
+def make_icon(cat, cls):
+    """A small square version of the main render, made at build time into _site/media/icons (Pillow)."""
+    if cls in _icon_cache:
+        return _icon_cache[cls]
+    src = os.path.join(ROOT, "media", "renders", cat, f"{cls}.webp")
+    url = None
+    if os.path.exists(src):
+        try:
+            from PIL import Image
+            out_dir = os.path.join(OUT, "media", "icons")
+            os.makedirs(out_dir, exist_ok=True)
+            dst = os.path.join(out_dir, f"{cls}.webp")
+            if not os.path.exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src):
+                im = Image.open(src).convert("RGBA")
+                im.thumbnail((ICON_PX, ICON_PX), Image.LANCZOS)
+                canvas = Image.new("RGBA", (ICON_PX, ICON_PX), (0, 0, 0, 0))
+                canvas.paste(im, ((ICON_PX - im.width) // 2, (ICON_PX - im.height) // 2))
+                canvas.save(dst, "WEBP", quality=88, method=4)
+            url = f"/media/icons/{cls}.webp"
+        except ImportError:
+            url = None   # Pillow missing: pages still work, just without the small icons
+    _icon_cache[cls] = url
+    return url
 
 
 def media_sound(cls, sample_path):

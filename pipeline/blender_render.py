@@ -36,6 +36,7 @@ PRESETS = {
 FILL = 0.88  # share of the frame the model may cover
 # Extra views as changes to the preset: (azimuth added, elevation, file suffix)
 VIEWS = {"main": (0, None, ""), "back": (180, None, ".back"), "top": (0, 72, ".top"), "front": (90, None, ".front")}
+WORN = ".worn"   # clothing rendered as worn on the survivor (from wear.glb), one extra image
 LOG = None
 
 
@@ -61,6 +62,7 @@ def args():
     ap.add_argument("--exposure", type=float, default=-0.3)
     ap.add_argument("--no-crop", action="store_true", help="keep the full frame instead of cropping to the model")
     ap.add_argument("--views", default="main,back,top", help=f"views rendered per item, from {','.join(VIEWS)}")
+    ap.add_argument("--no-auto-face", action="store_true", help="always use the category preset angle instead of the side that shows the most")
     ap.add_argument("--blender-glb", action="store_true", help="export media/models/<Class>.glb from Blender instead of copying web.glb")
     ap.add_argument("--samples", type=int, default=0, help="render samples (default 64 EEVEE, 96 Cycles)")
     ap.add_argument("--engine", default="EEVEE", choices=["CYCLES", "EEVEE"])
@@ -189,18 +191,56 @@ def add_light(name, kind, loc, target, energy, size):
     return obj
 
 
-def frame(objs, category, aspect, view="main"):
-    az, el, lens = PRESETS.get(category, PRESETS["default"])
+def view_dir(az, el):
+    """Unit vector from the model towards the camera. Blender scene: glTF +Y up becomes +Z up, glTF +Z (front) becomes -Y."""
+    a, e = math.radians(az), math.radians(el)
+    return Vector((math.sin(a) * math.cos(e), -math.cos(a) * math.cos(e), math.sin(e)))
+
+
+def preset_azimuth(objs, category):
+    """The preset angle, turned side-on for models whose long axis runs along X (DayZ guns)."""
+    az, el, _ = PRESETS.get(category, PRESETS["default"])
+    lo, hi = bounds(objs)
+    size = hi - lo
+    return (az - 90 if size.x > size.y * 1.3 else az), el
+
+
+def best_azimuth(objs, az, el, candidates):
+    """The candidate azimuth whose side shows the most: surface area facing the camera, weighted by the projected extent.
+    Backpacks, vests and cases are modelled with their detailed side in no fixed direction; this finds it."""
+    dg = bpy.context.evaluated_depsgraph_get()
+    polys = []
+    for o in objs:
+        ev = o.evaluated_get(dg)
+        m3 = ev.matrix_world.to_3x3()
+        for p in ev.data.polygons:
+            polys.append((m3 @ p.normal, p.area))
+    lo, hi = bounds(objs)
+    corners = [Vector((x, y, z)) for x in (lo.x, hi.x) for y in (lo.y, hi.y) for z in (lo.z, hi.z)]
+    best, best_score = az, -1.0
+    for cand in candidates:
+        d = view_dir(cand, el)
+        facing = sum(area * max(0.0, n.dot(d)) for n, area in polys)
+        up = Vector((0, 0, 1))
+        right = d.cross(up).normalized() if abs(d.z) < 0.99 else Vector((1, 0, 0))
+        upv = right.cross(d).normalized()
+        xs = [c.dot(right) for c in corners]; ys = [c.dot(upv) for c in corners]
+        extent = max(1e-6, (max(xs) - min(xs)) * (max(ys) - min(ys)))
+        score = facing * math.sqrt(extent)
+        if score > best_score * 1.03 or (best_score < 0):   # a clear win, else the preset keeps its angle
+            best, best_score = cand, score
+    return best
+
+
+def frame(objs, category, aspect, view="main", base_az=None):
+    _, el, lens = PRESETS.get(category, PRESETS["default"])
+    az = base_az if base_az is not None else preset_azimuth(objs, category)[0]
     d_az, v_el, _ = VIEWS[view]
     az += d_az
     if v_el is not None:
         el = v_el
     lo, hi = bounds(objs)
     center, size = (lo + hi) / 2, hi - lo
-    # presets assume the model's long axis runs front to back (Blender Y). DayZ weapons are modelled
-    # along X (muzzle towards -X), so turn the camera to keep a side-on view of whatever is longest
-    if size.x > size.y * 1.3:
-        az -= 90
     radius = max(size.length / 2, 1e-3)
     cam_data = bpy.data.cameras.new("cam")
     cam_data.lens = lens
@@ -211,9 +251,7 @@ def frame(objs, category, aspect, view="main"):
     fov = 2 * math.atan(cam_data.sensor_width / 2 / lens)
     vfov = 2 * math.atan(math.tan(fov / 2) / aspect)
     dist = radius / math.sin(min(fov, vfov) / 2) * 1.04
-    # Blender scene: glTF +Y up becomes +Z up, glTF +Z (model front) becomes -Y
-    a, e = math.radians(az), math.radians(el)
-    direction = Vector((math.sin(a) * math.cos(e), -math.cos(a) * math.cos(e), math.sin(e)))
+    direction = view_dir(az, el)
     cam.location = center + direction * dist
     cam.rotation_euler = (center - cam.location).to_track_quat("-Z", "Y").to_euler()
 
@@ -252,10 +290,9 @@ def crop_to_model(cam, corners, margin=0.04):
 
 
 # ---------------------------------------------------------------- one item
-def render_item(item_dir, category, cls, a):
+def load_model(path):
     reset_scene()
-    setup_render(a)
-    bpy.ops.import_scene.gltf(filepath=os.path.join(item_dir, "model.glb"))
+    bpy.ops.import_scene.gltf(filepath=path)
     objs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     if not objs:
         raise RuntimeError("no meshes imported")
@@ -265,22 +302,47 @@ def render_item(item_dir, category, cls, a):
         else:
             for poly in o.data.polygons:
                 poly.use_smooth = True
+    return objs
+
+
+def shoot(objs, category, view, out, a, base_az):
     sc = bpy.context.scene
+    for o in list(sc.objects):
+        if o.type in ("CAMERA", "LIGHT"):
+            bpy.data.objects.remove(o, do_unlink=True)
+    cam, corners = frame(objs, category, sc.render.resolution_x / sc.render.resolution_y, view, base_az)
+    if not a.no_crop:
+        crop_to_model(cam, corners)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    sc.render.filepath = out
+    bpy.ops.render.render(write_still=True)
+    if not os.path.exists(out):
+        raise RuntimeError(f"Blender wrote no file at {out}")
+
+
+def render_item(item_dir, category, cls, a):
+    objs = load_model(os.path.join(item_dir, "model.glb"))
+    setup_render(a)
+    az, el = preset_azimuth(objs, category)
+    if not a.no_auto_face:
+        # guns stay side-on (either side); everything else may face any of the four quarters
+        lo, hi = bounds(objs)
+        long_x = (hi - lo).x > (hi - lo).y * 1.3
+        az = best_azimuth(objs, az, el, [az, az + 180] if long_x else [az, az + 90, az + 180, az + 270])
     img_out = None
     for view in views(a):
-        for o in list(sc.objects):
-            if o.type in ("CAMERA", "LIGHT"):
-                bpy.data.objects.remove(o, do_unlink=True)
-        cam, corners = frame(objs, category, sc.render.resolution_x / sc.render.resolution_y, view)
-        if not a.no_crop:
-            crop_to_model(cam, corners)
         out = image_path(a, category, cls, view)
-        os.makedirs(os.path.dirname(out), exist_ok=True)
-        sc.render.filepath = out
-        bpy.ops.render.render(write_still=True)
-        if not os.path.exists(out):
-            raise RuntimeError(f"Blender wrote no file at {out}")
+        shoot(objs, category, view, out, a, az)
         img_out = img_out or out
+    wear = os.path.join(item_dir, "wear.glb")
+    if os.path.exists(wear):   # clothing as worn: the model rigged to the survivor, shown on its own
+        wobjs = load_model(wear)
+        setup_render(a)
+        waz, wel = preset_azimuth(wobjs, "clothing")
+        if not a.no_auto_face:
+            waz = best_azimuth(wobjs, waz, wel, [waz, waz + 90, waz + 180, waz + 270])
+        shoot(wobjs, "clothing", "main", os.path.join(a.out, "renders", category, f"{cls}{WORN}.{a.format}"), a, waz)
+        objs = load_model(os.path.join(item_dir, "model.glb"))   # back to the ground model for the GLB export below
     if not a.no_glb:
         glb_out = os.path.join(a.out, "models", f"{cls}.glb")
         os.makedirs(os.path.dirname(glb_out), exist_ok=True)
@@ -351,7 +413,10 @@ def main():
     done, skipped, failed, start = 0, 0, [], time.time()
     report = []
     for n, (category, cls) in enumerate(items, 1):
-        if a.resume and all(os.path.exists(image_path(a, category, cls, v)) and os.path.getsize(image_path(a, category, cls, v)) > 1024 for v in views(a)):
+        wanted = [image_path(a, category, cls, v) for v in views(a)]
+        if os.path.exists(os.path.join(a.work, category, cls, "wear.glb")):
+            wanted.append(os.path.join(a.out, "renders", category, f"{cls}{WORN}.{a.format}"))
+        if a.resume and all(os.path.exists(w) and os.path.getsize(w) > 1024 for w in wanted):
             skipped += 1
             log(f"[{n}/{len(items)}] skipped {category}/{cls}")
             continue

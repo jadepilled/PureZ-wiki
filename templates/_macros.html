@@ -2,7 +2,7 @@
 <p class="crumbs">{% if cat %}<a href="/{{ cat[0] }}/">{{ cat[1] }}</a>{% else %}<a href="/">Wiki</a>{% endif %}</p>
 {% endmacro %}
 
-{% macro itemlink(l) %}{% if l.url %}<a href="{{ l.url }}">{{ l.title }}</a>{% else %}<span title="{{ l.cls }}">{{ l.title }}</span>{% endif %}{% endmacro %}
+{% macro itemlink(l) %}{% if l.url %}<a href="{{ l.url }}"{% if l.icon %} class="il"{% endif %}>{% if l.icon %}<img class="mini" src="{{ l.icon }}" alt="" loading="lazy">{% endif %}{{ l.title }}</a>{% else %}<span title="{{ l.cls }}">{{ l.title }}</span>{% endif %}{% endmacro %}
 
 {% macro condition(c, label=None) %}
 <div class="cond" aria-label="Spawn condition: {{ c.label }}">
@@ -13,7 +13,7 @@
 
 {% macro icon(key) %}<svg class="ic" aria-hidden="true"><use href="#i-{{ key }}"/></svg>{% endmacro %}
 
-{% macro ingredient(l) %}<span class="ing{% if l.this %} this{% endif %}">{{ icon(l.icon) }}{% if l.url %}<a href="{{ l.url }}">{{ l.title }}</a>{% else %}<span title="{{ l.cls }}">{{ l.title }}</span>{% endif %}</span>{% endmacro %}
+{% macro ingredient(l) %}<span class="ing{% if l.this %} this{% endif %}">{% if l.thumb %}<img class="mini" src="{{ l.thumb }}" alt="" loading="lazy">{% else %}{{ icon(l.icon) }}{% endif %}{% if l.url %}<a href="{{ l.url }}">{{ l.title }}</a>{% else %}<span title="{{ l.cls }}">{{ l.title }}</span>{% endif %}</span>{% endmacro %}
 
 {% macro recipe(r) %}
 <li class="recipe" data-text="{{ (r.title ~ ' ' ~ (r.slots | map(attribute='items') | sum(start=[]) | map(attribute='title') | join(' ')) ~ ' ' ~ (r.slots | map(attribute='group') | select | join(' ')) ~ ' ' ~ (r.results | map(attribute='title') | join(' '))) | lower }}">

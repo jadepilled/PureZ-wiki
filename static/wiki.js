@@ -116,6 +116,15 @@
     }));
   });
 
+  // Images: tiles or list, remembered
+  document.querySelectorAll(".gallery-bar [data-gallery]").forEach((b) => b.addEventListener("click", () => {
+    const g = b.closest("details").querySelector(".gallery");
+    g.classList.toggle("tiles", b.dataset.gallery === "tiles"); g.classList.toggle("list", b.dataset.gallery === "list");
+    b.parentElement.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    try { localStorage.setItem("pz-gallery", b.dataset.gallery); } catch {}
+  }));
+  try { const m = localStorage.getItem("pz-gallery"); if (m) document.querySelectorAll(`.gallery-bar [data-gallery="${m}"]`).forEach((b) => b.click()); } catch {}
+
   // List filters
   document.querySelectorAll("input[data-filter]").forEach((f) => {
     const rows = [...document.querySelectorAll(f.dataset.filter)];

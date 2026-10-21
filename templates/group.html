@@ -7,6 +7,6 @@
   <p class="lead">Any of these {{ groupMembers }} items counts as a {{ page.title | lower }} in a recipe.</p>
 </header>
 <ul class="list">
-  {% for l in groupItems | sort(attribute="title") %}<li><a href="{{ l.url }}"><span>{{ l.title }}</span></a></li>{% endfor %}
+  {% for l in groupItems | sort(attribute="title") %}<li><a href="{{ l.url }}"><span>{% if l.thumb %}<img class="mini" src="{{ l.thumb }}" alt="" loading="lazy">{% endif %}{{ l.title }}</span></a></li>{% endfor %}
 </ul>
 {% endblock %}

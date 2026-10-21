@@ -37,8 +37,12 @@ indices), so nothing needs debinarising first. From the wiki repo on your PC:
 3. Commit `media/`. Pages show the render and 3D model automatically.
 
 Each item is rendered from three sides by default: the main three-quarter view, the other side (`.back`) and from
-above (`.top`); `--views main,back,top,front` adds a head-on view. The wiki shows them as thumbnails under the
-picture. Renders are cropped to the model plus a 4% margin out of a 2400x1800 frame (`--size`, `--no-crop`), WebP
+above (`.top`); `--views main,back,top,front` adds a head-on view. The main angle is chosen per item: of the four
+quarters (two sides for guns) the one that shows the most surface, so packs and cases face the camera
+(`--no-auto-face` keeps the category preset). Clothing with a worn model in its config (`ClothingTypes`) also gets
+a `.worn` render of that model; re-run `extract/configs.py` once so the worn model paths are in `data/configs.json`.
+The wiki shows every render as thumbnails under the picture and in an Images section, and makes 128px icons
+from the main render at build time (Pillow) for lists, links and recipes. Renders are cropped to the model plus a 4% margin out of a 2400x1800 frame (`--size`, `--no-crop`), WebP
 quality 92 (`--quality 100` for lossless, `--format png`), EEVEE by default (`--engine CYCLES --gpu` for the
 slower path-traced look), exposure -0.3 with the AgX base look (`--exposure`). Progress and failures: console,
 `pipeline\work\render.log`, and `media\renders\report.json` with tracebacks.
